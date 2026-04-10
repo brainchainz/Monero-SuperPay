@@ -1,0 +1,32 @@
+# Build artifacts
+build/bin/
+frontend/dist/
+frontend/node_modules/
+
+# Go
+*.exe
+*.test
+*.out
+
+# macOS
+.DS_Store
+*.dmg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Wails
+wailsjs/
+
+# Data (runtime)
+*.db
+*.db-journal
+*.db-wal
+data/
+uploads/
+
+# Wallet RPC binary (downloaded separately)
+build/bin/monero-wallet-rpc*
