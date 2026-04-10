@@ -24,13 +24,13 @@ A self-hosted, trustless point-of-sale system for accepting Monero (XMR) payment
 
 ## Screenshots
 
-| Dashboard | Point of Sale | Payment |
-|-----------|---------------|---------|
-| ![Dashboard](gallery/1.png) | ![PoS](gallery/5.png) | ![Payment](gallery/3.png) |
+| Dashboard | Products | Point of Sale / Cart |
+|-----------|----------|----------------------|
+| ![Dashboard](gallery/1.png) | ![Products](gallery/3.png) | ![Point of Sale / Cart](gallery/2.png) |
 
-| Orders | Products | Devices |
-|--------|----------|---------|
-| ![Orders](gallery/4.png) | ![Products](gallery/6.png) | ![Devices](gallery/2.png) |
+| Orders | Payment Screen | Payment Received |
+|--------|----------------|------------------|
+| ![Orders](gallery/4.png) | ![Payment Screen](gallery/5.png) | ![Payment Received](gallery/6.png) |
 
 ---
 
