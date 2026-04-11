@@ -123,3 +123,6 @@ superpay-desktop/build/*.dmg.zip
 
 # ===== Original screenshot source folders =====
 cake wallet find view-only wallet info/
+
+# ===== Compiled binaries =====
+backend/server

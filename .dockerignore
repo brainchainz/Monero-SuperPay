@@ -1,0 +1,11 @@
+node_modules
+.git
+frontend/dist
+superpay-desktop/
+docs/
+gallery/
+website/
+*.md
+*.png
+!frontend/**
+!backend/**
