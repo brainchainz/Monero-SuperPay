@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Edit2, Trash2, Upload, AlertTriangle } from 'lucide-react'
 import Card from '../components/Card'
 import Modal from '../components/Modal'
-import { products as productsApi, categories as categoriesApi } from '../lib/api'
+import { products as productsApi, categories as categoriesApi, resolveImageUrl } from '../lib/api'
 
 export default function Products() {
   const queryClient = useQueryClient()
@@ -255,7 +255,7 @@ export default function Products() {
                 <div className="space-y-4">
                   {product.image_url && (
                     <img
-                      src={product.image_url}
+                      src={resolveImageUrl(product.image_url)}
                       alt={product.name}
                       className="w-full h-48 object-cover rounded-lg"
                     />
@@ -395,7 +395,7 @@ export default function Products() {
             <div className="flex items-center gap-4">
               {(imagePreview || editingProduct?.image_url) && (
                 <img
-                  src={imagePreview || editingProduct?.image_url}
+                  src={imagePreview || resolveImageUrl(editingProduct?.image_url)}
                   alt="Preview"
                   className="w-20 h-20 object-cover rounded-lg border border-gray-600"
                 />

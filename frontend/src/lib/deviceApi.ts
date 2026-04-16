@@ -4,8 +4,7 @@
  */
 
 import { Product, Category, Order, ExchangeRate } from './types'
-
-const API_BASE = '/api'
+import { getApiBase } from './api'
 
 class DeviceAPIError extends Error {
   constructor(
@@ -44,7 +43,7 @@ async function deviceRequest<T>(
     throw new DeviceAPIError(401, 'Not paired - no API key')
   }
 
-  const url = `${API_BASE}${path}`
+  const url = `${getApiBase()}${path}`
   const options: RequestInit = {
     method,
     headers: {
@@ -152,7 +151,7 @@ export const posApi = {
 
 // Pairing functions
 export async function pairDevice(token: string): Promise<{ device_id: string; device_name: string; device_type: string; api_key: string }> {
-  const response = await fetch(`${API_BASE}/devices/pair`, {
+  const response = await fetch(`${getApiBase()}/devices/pair`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token }),

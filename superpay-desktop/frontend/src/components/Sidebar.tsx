@@ -79,12 +79,12 @@ export default function Sidebar() {
         className={`fixed left-0 top-0 h-screen w-64 bg-gray-800 border-r border-gray-700 transition-transform duration-300 ease-out z-40 md:translate-x-0 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
       >
-        {/* Header */}
-        <div className="p-6 border-b border-gray-700">
+        {/* Drag region — macOS traffic light buttons sit in this area */}
+        <div className="pt-8 px-6 pb-4 border-b border-gray-700" style={{ '--wails-draggable': 'drag' } as React.CSSProperties}>
           <img
             src="/logo.png"
             alt="Monero SuperPay"
-            className="w-full h-auto max-h-14 object-contain"
+            className="w-full h-auto max-h-14 object-contain pointer-events-none"
           />
         </div>
 

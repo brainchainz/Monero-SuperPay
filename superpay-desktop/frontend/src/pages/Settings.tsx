@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, CheckCircle, Wallet, Eye, Server, Globe, Wifi, Shield, XCircle, Loader2, Download, Edit2, Trash2, Package, Lock } from 'lucide-react'
+import { AlertCircle, CheckCircle, Wallet, Eye, Server, Globe, Wifi, Shield, XCircle, Loader2, Download, Upload, Edit2, Trash2, Package, Lock } from 'lucide-react'
 import Card from '../components/Card'
-import { settings as settingsApi, wallet as walletApi, stores as storesApi, getApiBase } from '../lib/api'
+import { settings as settingsApi, wallet as walletApi, stores as storesApi, getApiBase, isUmbrelMode } from '../lib/api'
 import { Store } from '../lib/types'
 import { useLock } from '../context/LockContext'
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime'
@@ -57,6 +57,9 @@ export default function Settings() {
   const [newStoreName, setNewStoreName] = useState('')
   const [newStoreDescription, setNewStoreDescription] = useState('')
   const [createStoreError, setCreateStoreError] = useState('')
+  const [importingStore, setImportingStore] = useState(false)
+  const [importError, setImportError] = useState('')
+  const [importSuccess, setImportSuccess] = useState('')
   const [editingStore, setEditingStore] = useState<Store | null>(null)
   const [editStoreName, setEditStoreName] = useState('')
   const [editStoreDescription, setEditStoreDescription] = useState('')
@@ -85,6 +88,9 @@ export default function Settings() {
   })
   const storeList = storesData?.stores || []
   const activeStoreId = storesData?.active_store_id
+
+  // Detect if running on Umbrel (Docker/browser) vs desktop (Wails)
+  const isUmbrel = isUmbrelMode()
 
   const updateSettingsMutation = useMutation({
     mutationFn: (data: Partial<import('../lib/types').Settings>) => settingsApi.update(data),
@@ -684,6 +690,34 @@ export default function Settings() {
           <span className={`text-sm font-medium ${nodeStatus.color}`}>{nodeStatus.label}</span>
         </div>
 
+        {/* Umbrel: simplified read-only status — node is managed by docker-compose */}
+        {isUmbrel ? (
+          <div className="space-y-4">
+            <div className="p-4 bg-gray-800 border border-gray-700 rounded-lg space-y-3">
+              <p className="text-sm text-gray-300">
+                Your Monero node connection is automatically managed by Umbrel.
+              </p>
+              {settingsData?.monero_node_url && (
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <Server size={14} className="flex-shrink-0" />
+                  <span className="font-mono">{settingsData.monero_node_url}</span>
+                </div>
+              )}
+              {walletStatus?.height && walletStatus.height > 0 && (
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <Package size={14} className="flex-shrink-0" />
+                  <span>Block height: {walletStatus.height.toLocaleString()}</span>
+                  {walletStatus?.target_height > 0 && walletStatus.target_height !== walletStatus.height && (
+                    <span className="text-yellow-400">/ {walletStatus.target_height.toLocaleString()}</span>
+                  )}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-500">
+              To change node settings, update environment variables in your Umbrel app configuration.
+            </p>
+          </div>
+        ) : (
         <div className="space-y-6">
           {/* Connection Type Selection */}
           <div>
@@ -921,6 +955,7 @@ export default function Settings() {
             )}
           </button>
         </div>
+        )}
       </Card>
 
       {/* Wallet Setup */}
@@ -1291,19 +1326,79 @@ export default function Settings() {
           )}
         </div>
 
-        {/* Create Store Button */}
-        <button
-          onClick={() => {
-            setShowCreateStoreModal(true)
-            setCreateStoreError('')
-            setNewStoreName('')
-            setNewStoreDescription('')
-          }}
-          className="w-full px-4 py-2 bg-monero-600 hover:bg-monero-700 rounded text-white font-medium transition flex items-center justify-center gap-2"
-        >
-          <Package size={16} />
-          Create New Store
-        </button>
+        {/* Import status messages */}
+        {importError && (
+          <div className="p-3 bg-red-900/20 border border-red-700 rounded-lg text-red-300 text-sm flex items-center gap-2">
+            <AlertCircle size={16} />
+            {importError}
+          </div>
+        )}
+        {importSuccess && (
+          <div className="p-3 bg-green-900/20 border border-green-700 rounded-lg text-green-300 text-sm flex items-center gap-2">
+            <CheckCircle size={16} />
+            {importSuccess}
+          </div>
+        )}
+
+        {/* Create + Import Buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setShowCreateStoreModal(true)
+              setCreateStoreError('')
+              setNewStoreName('')
+              setNewStoreDescription('')
+            }}
+            className="flex-1 px-4 py-2 bg-monero-600 hover:bg-monero-700 rounded text-white font-medium transition flex items-center justify-center gap-2"
+          >
+            <Package size={16} />
+            Create New Store
+          </button>
+
+          {/* Hidden file input for import */}
+          <input
+            id="import-store-file"
+            type="file"
+            accept=".superpay"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              e.target.value = '' // reset so same file can be re-selected
+              setImportError('')
+              setImportSuccess('')
+              setImportingStore(true)
+              try {
+                const result = await storesApi.importStore(file)
+                setImportSuccess(`Store "${result.name}" imported successfully`)
+                setTimeout(() => setImportSuccess(''), 5000)
+                queryClient.invalidateQueries({ queryKey: ['stores'] })
+              } catch (err: any) {
+                setImportError(err?.message || 'Failed to import store')
+                setTimeout(() => setImportError(''), 5000)
+              } finally {
+                setImportingStore(false)
+              }
+            }}
+          />
+          <button
+            onClick={() => document.getElementById('import-store-file')?.click()}
+            disabled={importingStore}
+            className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 rounded text-white font-medium transition flex items-center justify-center gap-2"
+          >
+            {importingStore ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Importing...
+              </>
+            ) : (
+              <>
+                <Upload size={16} />
+                Import .superpay
+              </>
+            )}
+          </button>
+        </div>
       </Card>
 
       {/* Create Store Modal */}

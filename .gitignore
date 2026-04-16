@@ -126,3 +126,16 @@ cake wallet find view-only wallet info/
 
 # ===== Compiled binaries =====
 backend/server
+
+# ===== Dev/session files (not for repo) =====
+CHANGES.md
+CHANGELOG-SESSION.md
+design-system.md
+opening-animation.html
+.claude/
+
+# ===== Website (hosted separately on GitHub Pages) =====
+website/
+
+# ===== Wails bindings in Umbrel frontend (desktop only) =====
+frontend/wailsjs/

@@ -13,6 +13,7 @@ import PosTerminal from './pages/PosTerminal'
 import OrderMonitor from './pages/OrderMonitor'
 import Analytics from './pages/Analytics'
 import SplashScreen from './components/SplashScreen'
+import { markApiReady, cacheApiBase } from './lib/api'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -23,6 +24,26 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+// Wait for Wails runtime to be available (it's injected asynchronously)
+function waitForWailsRuntime(maxWaitMs = 3000): Promise<boolean> {
+  return new Promise((resolve) => {
+    if ((window as any).go?.main?.App?.GetServerURL) {
+      resolve(true)
+      return
+    }
+    const start = Date.now()
+    const check = setInterval(() => {
+      if ((window as any).go?.main?.App?.GetServerURL) {
+        clearInterval(check)
+        resolve(true)
+      } else if (Date.now() - start > maxWaitMs) {
+        clearInterval(check)
+        resolve(false) // Not in Wails, or runtime didn't load
+      }
+    }, 50)
+  })
+}
 
 function Root() {
   const [splashDone, setSplashDone] = useState(false)
@@ -56,10 +77,34 @@ function Root() {
   )
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <Root />
-    </QueryClientProvider>
-  </React.StrictMode>
-)
+// Initialize API base URL for Wails mode
+async function initApp() {
+  try {
+    const wailsReady = await waitForWailsRuntime()
+    if (wailsReady) {
+      const serverURL = await (window as any).go.main.App.GetServerURL()
+      if (serverURL) {
+        cacheApiBase(serverURL + '/api')
+        console.log('[SuperPay] API base:', serverURL + '/api')
+      }
+    } else {
+      console.log('[SuperPay] Not in Wails mode, using relative URLs')
+    }
+  } catch (e) {
+    console.log('[SuperPay] Failed to get server URL:', e)
+  }
+
+  // Mark API as ready — queries can now fire
+  markApiReady()
+
+  // Now render the app
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <Root />
+      </QueryClientProvider>
+    </React.StrictMode>
+  )
+}
+
+initApp()

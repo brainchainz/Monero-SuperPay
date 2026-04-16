@@ -17,8 +17,16 @@ class WebSocketClient {
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-        const wsUrl = `${protocol}://${window.location.host}${this.url}`
+        // Use the dynamic server URL if available (Wails mode)
+        let wsUrl: string
+        const apiBase = (window as any).__SUPERPAY_API_BASE__
+        if (apiBase) {
+          // Convert http://127.0.0.1:PORT/api to ws://127.0.0.1:PORT/api/ws
+          wsUrl = apiBase.replace(/^http/, 'ws') + '/ws'
+        } else {
+          const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+          wsUrl = `${protocol}://${window.location.host}${this.url}`
+        }
         this.ws = new WebSocket(wsUrl)
 
         this.ws.onopen = () => {

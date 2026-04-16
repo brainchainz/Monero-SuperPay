@@ -53,6 +53,7 @@ export default function PaymentScreen({
   const isPaid = order.status === 'paid' || order.status === 'delivered'
 
   // Reconstruct payment_uri from address + amount if not present
+  // (order list API doesn't include payment_uri, only CreateOrder does)
   const paymentUri = order.payment_uri
     || (order.payment_address && order.total_xmr
       ? `monero:${order.payment_address}?tx_amount=${order.total_xmr}`
@@ -60,10 +61,10 @@ export default function PaymentScreen({
 
   return (
     <div className="fixed inset-0 bg-gray-900 flex items-center justify-center p-4 z-50 overflow-y-auto">
-      {/* Back button */}
+      {/* Back button — pushed below macOS traffic light buttons */}
       <button
         onClick={onBack}
-        className="absolute top-5 left-5 inline-flex items-center gap-3 text-gray-400 hover:text-white transition z-10 px-4 py-3 rounded-xl hover:bg-gray-800"
+        className="absolute top-10 left-5 inline-flex items-center gap-3 text-gray-400 hover:text-white transition z-10 px-4 py-3 rounded-xl hover:bg-gray-800"
       >
         <ArrowLeft size={32} />
         <span className="text-lg font-semibold">Back</span>

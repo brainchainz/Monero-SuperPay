@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, Plus, Settings as SettingsIcon, Loader2 } from 'lucide-react'
+import { ChevronDown, Plus, Loader2 } from 'lucide-react'
 import { stores as storesApi } from '../lib/api'
 
 interface StoreSwitcherProps {
@@ -15,19 +15,21 @@ export default function StoreSwitcher({ onStoreSwitch }: StoreSwitcherProps) {
   const [createError, setCreateError] = useState('')
   const queryClient = useQueryClient()
 
-  const { data: storesResponse, isLoading } = useQuery({
+  const { data: storeData, isLoading } = useQuery({
     queryKey: ['stores'],
     queryFn: () => storesApi.list(),
   })
-  const stores = storesResponse?.stores
+
+  const storeList = storeData?.stores || []
+  const activeStoreId = storeData?.active_store_id || ''
 
   const switchMutation = useMutation({
     mutationFn: (id: string) => storesApi.switch(id),
     onSuccess: () => {
       setIsOpen(false)
+      // Invalidate all queries to refresh data from the new store's DB
       queryClient.invalidateQueries()
-      // Reload the window to refresh all app state
-      window.location.reload()
+      setTimeout(() => queryClient.refetchQueries(), 300)
     },
   })
 
@@ -58,8 +60,7 @@ export default function StoreSwitcher({ onStoreSwitch }: StoreSwitcherProps) {
     })
   }
 
-  const activeStoreId = storesResponse?.active_store_id
-  const activeStore = stores?.find(s => s.id === activeStoreId) || stores?.[0]
+  const activeStore = storeList.find((s) => s.id === activeStoreId) || storeList[0]
 
   return (
     <>
@@ -91,8 +92,8 @@ export default function StoreSwitcher({ onStoreSwitch }: StoreSwitcherProps) {
                     <Loader2 size={16} className="animate-spin" />
                     <span className="text-sm">Loading...</span>
                   </div>
-                ) : stores && stores.length > 0 ? (
-                  stores.map((store) => (
+                ) : storeList.length > 0 ? (
+                  storeList.map((store) => (
                     <button
                       key={store.id}
                       onClick={() => {
@@ -123,24 +124,17 @@ export default function StoreSwitcher({ onStoreSwitch }: StoreSwitcherProps) {
               </div>
 
               {/* Create Store Button */}
-              <div className="p-2 border-t border-gray-700 flex gap-2">
+              <div className="p-2 border-t border-gray-700">
                 <button
                   onClick={() => {
                     setShowCreateModal(true)
                     setIsOpen(false)
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-monero-600 hover:bg-monero-700 rounded text-sm font-medium text-white transition"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-monero-600 hover:bg-monero-700 rounded text-sm font-medium text-white transition"
                 >
                   <Plus size={14} />
                   New Store
                 </button>
-                <a
-                  href="/settings"
-                  className="flex items-center justify-center px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition"
-                  title="Manage stores"
-                >
-                  <SettingsIcon size={16} />
-                </a>
               </div>
             </div>
           )}

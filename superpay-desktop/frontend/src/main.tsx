@@ -11,7 +11,6 @@ import PointOfSale from './pages/PointOfSale'
 import Settings from './pages/Settings'
 import PosTerminal from './pages/PosTerminal'
 import OrderMonitor from './pages/OrderMonitor'
-import SetupWizard from './pages/SetupWizard'
 import Analytics from './pages/Analytics'
 import SplashScreen from './components/SplashScreen'
 import { markApiReady, cacheApiBase } from './lib/api'
@@ -60,9 +59,6 @@ function Root() {
 
             {/* Order Monitor - standalone kitchen/counter view */}
             <Route path="/monitor" element={<OrderMonitor />} />
-
-            {/* First-run Setup Wizard - standalone, no sidebar */}
-            <Route path="/setup" element={<SetupWizard />} />
 
             {/* Admin dashboard - with sidebar */}
             <Route element={<App />}>

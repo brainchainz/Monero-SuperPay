@@ -10,6 +10,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -245,6 +246,55 @@ func DeleteWallet(deps *Dependencies) http.HandlerFunc {
 		respondSuccess(w, http.StatusOK, map[string]interface{}{
 			"status":  "ok",
 			"message": "Wallet disconnected. Files remain on disk for safety.",
+		})
+	}
+}
+
+// DeleteWalletFile deletes a specific wallet file from disk
+func DeleteWalletFile(deps *Dependencies) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Name string `json:"name"`
+		}
+		if err := decodeJSON(r, &req); err != nil || req.Name == "" {
+			respondError(w, http.StatusBadRequest, "wallet name is required")
+			return
+		}
+
+		// Don't allow deleting the active wallet
+		activeFilename := getSettingFromDB(deps.DB, "wallet_filename")
+		if activeFilename == req.Name {
+			respondError(w, http.StatusConflict, "cannot delete the active wallet — disconnect it first")
+			return
+		}
+
+		// Sanitize the name to prevent path traversal
+		safeName := filepath.Base(req.Name)
+		walletDir := "/wallet"
+
+		// Delete the .keys file and the wallet file (if it exists)
+		keysPath := filepath.Join(walletDir, safeName+".keys")
+		walletPath := filepath.Join(walletDir, safeName)
+
+		removedAny := false
+		if err := os.Remove(keysPath); err == nil {
+			removedAny = true
+		}
+		if err := os.Remove(walletPath); err == nil {
+			removedAny = true
+		}
+		// Also remove address.txt file if present
+		addrPath := filepath.Join(walletDir, safeName+".address.txt")
+		os.Remove(addrPath)
+
+		if !removedAny {
+			respondError(w, http.StatusNotFound, "wallet files not found")
+			return
+		}
+
+		respondSuccess(w, http.StatusOK, map[string]interface{}{
+			"status":  "ok",
+			"message": fmt.Sprintf("Wallet '%s' deleted from disk.", safeName),
 		})
 	}
 }

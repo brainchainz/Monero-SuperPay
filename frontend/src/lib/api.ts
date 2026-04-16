@@ -9,10 +9,49 @@ import {
   ExchangeRate,
   WalletStatus,
   WalletFile,
-  Store,
 } from './types'
 
-const API_BASE = '/api'
+// In Wails, the Go backend runs on a random localhost port.
+// We discover it via the Wails runtime bindings at startup.
+// IMPORTANT: This must be a function (not a constant) because the Wails
+// runtime sets __SUPERPAY_API_BASE__ asynchronously in main.tsx's initApp(),
+// which runs AFTER ES module evaluation. A top-level constant would always
+// get the fallback value.
+// Set to true once initApp() in main.tsx has resolved the API base URL
+export let apiReady = false
+export function markApiReady() { apiReady = true }
+
+export function getApiBase(): string {
+  // 1. Prefer the live Wails-injected value
+  if ((window as any).__SUPERPAY_API_BASE__) {
+    return (window as any).__SUPERPAY_API_BASE__
+  }
+  // 2. Fall back to cached value from previous page load (survives reloads)
+  const cached = localStorage.getItem('superpay_api_base')
+  if (cached) {
+    return cached
+  }
+  // 3. Last resort — works in normal browsers but NOT in Wails WebKit
+  return '/api'
+}
+
+// Call after discovering the API base URL to persist across page reloads
+export function cacheApiBase(url: string) {
+  (window as any).__SUPERPAY_API_BASE__ = url
+  localStorage.setItem('superpay_api_base', url)
+}
+
+// Resolve a product image URL (e.g. "/uploads/foo.jpg") to an absolute URL
+// that points to the Go API server, not the Wails WebView origin.
+export function resolveImageUrl(imageUrl: string | undefined | null): string {
+  if (!imageUrl) return ''
+  // Already absolute
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) return imageUrl
+  // Strip /api suffix from the API base to get the server root
+  const apiBase = getApiBase()
+  const serverRoot = apiBase.replace(/\/api\/?$/, '')
+  return serverRoot + imageUrl
+}
 
 class APIError extends Error {
   constructor(
@@ -30,7 +69,7 @@ async function request<T>(
   path: string,
   body?: unknown
 ): Promise<T> {
-  const url = `${API_BASE}${path}`
+  const url = `${getApiBase()}${path}`
   const options: RequestInit = {
     method,
     headers: {
@@ -91,7 +130,7 @@ export const products = {
   uploadImage: async (id: string, file: File): Promise<{ image_url: string }> => {
     const formData = new FormData()
     formData.append('image', file)
-    const response = await fetch(`${API_BASE}/products/${id}/image`, {
+    const response = await fetch(`${getApiBase()}/products/${id}/image`, {
       method: 'POST',
       body: formData,
     })
@@ -164,7 +203,7 @@ export const orders = {
   }>('/orders/stats'),
   exportCSV: () => {
     // Return the URL so the browser can download it natively
-    return `${API_BASE}/orders/export/csv`
+    return `${getApiBase()}/orders/export/csv`
   }
 }
 
@@ -181,6 +220,9 @@ export const settings = {
       tailscale_ip: raw.tailscale_ip || '',
       tor_address: raw.tor_address || '',
       monero_node_url: raw.monero_node_url || '',
+      monero_node_type: raw.monero_node_type || '',
+      monero_node_user: raw.monero_node_user || '',
+      monero_node_pass: raw.monero_node_pass || '',
       show_prices_in_xmr: raw.show_prices_in_xmr !== 'false',
       show_fiat_price: raw.show_fiat_price !== 'false',
       monero_node_sync_status: raw.monero_node_sync_status
@@ -201,12 +243,17 @@ export const settings = {
 }
 
 // Wallet
+export const node = {
+  status: () => get<import('./types').NodeStatus>('/node/status'),
+}
+
 export const wallet = {
   status: () => get<WalletStatus>('/wallet/status'),
   setup: (data: { primary_address: string; secret_view_key: string; restore_height?: number; wallet_name?: string }) =>
     post<{ status: string; message: string; address: string }>('/wallet/setup', data),
   list: () => get<WalletFile[]>('/wallet/list'),
   delete: () => post<{ status: string; message: string }>('/wallet/delete'),
+  deleteFile: (name: string) => post<{ status: string; message: string }>('/wallet/delete-file', { name }),
 }
 
 // Stats
@@ -220,29 +267,33 @@ export const rate = {
 }
 
 // Stores
+export interface StoreListResponse {
+  stores: { id: string; name: string; description: string; created_at: string; updated_at: string; node_address: string; node_type: string }[]
+  active_store_id: string
+}
 export const stores = {
-  list: () => get<{ stores: Store[]; active_store_id: string }>('/stores'),
-  create: (data: { name: string; description?: string }) =>
-    post<Store>('/stores', data),
-  switch: (id: string) =>
-    post<Store>(`/stores/${id}/switch`),
-  update: (id: string, data: { name: string; description?: string }) =>
-    put<Store>(`/stores/${id}`, data),
-  delete: (id: string) =>
-    del<void>(`/stores/${id}`),
-  export: (id: string) => `${API_BASE}/stores/${id}/export`,
-  import: async (file: File): Promise<Store> => {
+  list: () => get<StoreListResponse>('/stores'),
+  create: (data: { name: string; description?: string }) => post<{ id: string; name: string }>('/stores', data),
+  switch: (id: string) => post<{ id: string; name: string }>(`/stores/${id}/switch`),
+  update: (id: string, data: { name: string; description?: string }) => put<{ id: string; name: string }>(`/stores/${id}`, data),
+  delete: (id: string) => del<void>(`/stores/${id}`),
+  exportStore: (id: string) => {
+    // Returns download URL for the .superpay file
+    return `${getApiBase()}/stores/${id}/export`
+  },
+  importStore: async (file: File): Promise<{ id: string; name: string }> => {
     const formData = new FormData()
     formData.append('file', file)
-    const response = await fetch(`${API_BASE}/stores/import`, {
+    const resp = await fetch(`${getApiBase()}/stores/import`, {
       method: 'POST',
       body: formData,
     })
-    const data = await response.json()
-    if (!response.ok) {
-      throw new APIError(response.status, data.error || 'Import failed', data)
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: 'Import failed' }))
+      throw new APIError(resp.status, err.error || 'Import failed')
     }
-    return data
+    const json = await resp.json()
+    return json.data || json
   },
 }
 

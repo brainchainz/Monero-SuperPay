@@ -94,16 +94,29 @@ export interface Settings {
   fiat_currency: string
   tax_rate: number
   confirmation_threshold: number
-  lock_pin?: string
   tailscale_ip?: string
   tor_address?: string
   monero_node_url?: string
+  monero_node_type?: string
+  monero_node_user?: string
+  monero_node_pass?: string
   show_prices_in_xmr?: boolean
   show_fiat_price?: boolean
   monero_node_sync_status?: {
     height: number
     target_height: number
   }
+  lock_pin?: string
+}
+
+export interface Store {
+  id: string
+  name: string
+  description: string
+  created_at: string
+  updated_at: string
+  node_address: string
+  node_type: string
 }
 
 export interface ExchangeRate {
@@ -116,6 +129,7 @@ export interface WalletStatus {
   configured: boolean
   address?: string
   height: number
+  target_height: number
   syncing: boolean
   daemon_height: number
   daemon_connected: boolean
@@ -127,14 +141,13 @@ export interface WalletFile {
   name: string
 }
 
-export interface Store {
-  id: string
-  name: string
-  description?: string
-  created_at: string
-  updated_at: string
-  node_address?: string
-  node_user?: string
-  node_pass?: string
-  node_type?: string
+export interface NodeStatus {
+  connected: boolean
+  node_address: string
+  height: number
+  target_height: number
+  version?: string
+  network?: string
+  syncing: boolean
+  auto_config: boolean
 }
