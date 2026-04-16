@@ -89,8 +89,7 @@ export default function Settings() {
   const storeList = storesData?.stores || []
   const activeStoreId = storesData?.active_store_id
 
-  // Detect if running on Umbrel (Docker/browser) vs desktop (Wails)
-  const isUmbrel = isUmbrelMode()
+  // Mac desktop — always show full node picker (no Umbrel check needed)
 
   const updateSettingsMutation = useMutation({
     mutationFn: (data: Partial<import('../lib/types').Settings>) => settingsApi.update(data),
