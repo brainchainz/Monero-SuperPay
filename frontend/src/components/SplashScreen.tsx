@@ -43,9 +43,12 @@ export default function SplashScreen({ onComplete, minDuration = 2000 }: SplashS
 
     async function detect() {
       // Try Lottie first
+      // Use GET (not HEAD) and check content-type because Wails asset server
+      // returns 200 + index.html for unknown paths (SPA fallback).
       try {
-        const res = await fetch('/splash.json', { method: 'HEAD' })
-        if (res.ok && !cancelled) {
+        const res = await fetch('/splash.json', { method: 'GET' })
+        const ct = res.headers.get('content-type') || ''
+        if (res.ok && ct.includes('json') && !cancelled) {
           setMode('lottie')
           return
         }
@@ -53,8 +56,9 @@ export default function SplashScreen({ onComplete, minDuration = 2000 }: SplashS
 
       // Try WebM
       try {
-        const res = await fetch('/splash.webm', { method: 'HEAD' })
-        if (res.ok && !cancelled) {
+        const res = await fetch('/splash.webm', { method: 'GET' })
+        const ct = res.headers.get('content-type') || ''
+        if (res.ok && ct.includes('video') && !cancelled) {
           setMode('video')
           return
         }
@@ -89,6 +93,8 @@ export default function SplashScreen({ onComplete, minDuration = 2000 }: SplashS
         path: '/splash.json',
       })
       anim.addEventListener('complete', finish)
+      // Safety: if the JSON fails to load/parse, lottie fires data_failed
+      anim.addEventListener('data_failed', finish)
     }).catch(() => {
       // lottie-web not installed — fall through to skip
       finish()

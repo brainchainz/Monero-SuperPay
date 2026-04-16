@@ -100,10 +100,9 @@ export default function Devices() {
       return selected.url
     }
 
-    // Fallback: use current hostname with port 3033 (Umbrel external mapping)
-    const hostname = window.location.hostname
+    // Fallback: use current origin (preserves the actual server port)
     const pairPath = newDeviceType === 'order_monitor' ? '/monitor' : '/pos'
-    return `http://${hostname}:3033${pairPath}?pair=${pairingData.token}`
+    return `${window.location.origin}${pairPath}?pair=${pairingData.token}`
   }
 
   // Check which connection methods are available
@@ -374,21 +373,21 @@ export default function Devices() {
           {pairingData?.connections && (
             <div className="p-3 bg-gray-800 rounded-lg font-mono text-xs text-gray-300 break-all text-center">
               {pairingData.connections.find((c: any) => c.type === activeTab)?.url ||
-                `http://${window.location.hostname}:3033`}
+                window.location.origin}
             </div>
           )}
 
           {/* Tailscale hint if not available */}
           {activeTab === 'tailscale' && !hasTailscale && (
             <div className="p-3 bg-yellow-900/20 border border-yellow-700/50 rounded-lg text-sm text-yellow-200">
-              No Tailscale IP configured. Set your Umbrel's Tailscale IP in Settings to enable remote PoS access.
+              No Tailscale IP configured. Set this computer's Tailscale IP in Settings to enable remote PoS access.
             </div>
           )}
 
           {/* Tor hint */}
           {activeTab === 'tor' && !hasTor && (
             <div className="p-3 bg-yellow-900/20 border border-yellow-700/50 rounded-lg text-sm text-yellow-200">
-              Tor address not detected. Make sure Tor is enabled in your Umbrel settings and the .onion address is configured in Monero SuperPay Settings.
+              Tor address not detected. Make sure Tor is running on this computer and the .onion address is configured in Settings.
             </div>
           )}
 

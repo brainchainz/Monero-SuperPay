@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, Search, Copy, Check, Printer, Clock, QrCode } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
+import { ChevronDown, Search, Copy, Check, Printer, Clock, QrCode } from 'lucide-react'
 import Card from '../components/Card'
-import StatusBadge from '../components/StatusBadge'
 import PaymentScreen from '../components/PaymentScreen'
+import StatusBadge from '../components/StatusBadge'
 import { orders as ordersApi, devices as devicesApi } from '../lib/api'
 import { useWebSocket } from '../lib/websocket'
 import { printReceipt } from '../lib/receipt'
+import type { Order } from '../lib/types'
 
 const ITEMS_PER_PAGE = 20
 
@@ -18,33 +19,20 @@ export default function Orders() {
   const [page, setPage] = useState(0)
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
-  const [viewPaymentOrder, setViewPaymentOrder] = useState<any>(null)
-  const [countdown, setCountdown] = useState(900)
-  const queryClient = useQueryClient()
+  const [viewPaymentOrder, setViewPaymentOrder] = useState<Order | null>(null)
+  const [countdown, setCountdown] = useState(0)
   const [searchParams, setSearchParams] = useSearchParams()
   const [confirmAction, setConfirmAction] = useState<{ orderId: string; type: 'deliver' | 'refund' | 'cancel' } | null>(null)
+  const queryClient = useQueryClient()
 
   // Auto-expand an order when navigated from Dashboard with ?expand=<orderId>
   useEffect(() => {
     const expandId = searchParams.get('expand')
     if (expandId) {
       setExpandedOrder(expandId)
-      setSearchParams({}, { replace: true })
+      setSearchParams({}, { replace: true }) // clear the param so it doesn't re-trigger
     }
   }, [searchParams])
-
-  // Instantly refresh orders list when a new order is created
-  useWebSocket('order_created', () => {
-    queryClient.invalidateQueries({ queryKey: ['orders'] })
-  })
-
-  // Refresh orders list when an order is paid
-  useWebSocket('order_paid', (data: any) => {
-    queryClient.invalidateQueries({ queryKey: ['orders'] })
-    if (data && viewPaymentOrder && data.id === viewPaymentOrder.id) {
-      queryClient.invalidateQueries({ queryKey: ['orders'] })
-    }
-  })
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -66,6 +54,8 @@ export default function Orders() {
       console.error('Copy failed:', err)
     }
   }
+
+
 
   const cancelOrderMutation = useMutation({
     mutationFn: (id: string) => ordersApi.cancel(id),
@@ -97,12 +87,28 @@ export default function Orders() {
     queryFn: () => devicesApi.list(),
   })
 
-  const deliverOrderMutation = useMutation({
-    mutationFn: (id: string) => ordersApi.deliver(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
+  // Instantly refresh orders list when a new order is created
+  useWebSocket('order_created', () => {
+    queryClient.invalidateQueries({ queryKey: ['orders'] })
   })
 
-  // Countdown timer for pending orders in payment view
+  // Listen for live payment confirmations
+  useWebSocket('order_paid', (data: any) => {
+    queryClient.invalidateQueries({ queryKey: ['orders'] })
+    if (data && viewPaymentOrder && data.id === viewPaymentOrder.id) {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+    }
+  })
+
+  // When orders data refreshes, keep the viewed payment order in sync
+  useEffect(() => {
+    if (viewPaymentOrder && ordersData) {
+      const updated = ordersData.find((o: Order) => o.id === viewPaymentOrder.id)
+      if (updated) setViewPaymentOrder(updated)
+    }
+  }, [ordersData])
+
+  // Countdown timer for pending orders (mirrors PointOfSale behavior)
   useEffect(() => {
     if (!viewPaymentOrder || viewPaymentOrder.status !== 'pending') return
     const createdAt = new Date(viewPaymentOrder.created_at).getTime()
@@ -124,7 +130,7 @@ export default function Orders() {
 
   const filteredOrders =
     ordersData?.filter(
-      (order) => {
+      (order: Order) => {
         // Client-side status filter: "paid" means paid OR delivered
         if (status === 'paid' && order.status !== 'paid' && order.status !== 'delivered') return false
         // Search filter
@@ -139,7 +145,12 @@ export default function Orders() {
 
   const statuses = ['pending', 'paid', 'refunded', 'expired', 'cancelled']
 
-  // --- Payment screen overlay ---
+  const deliverOrderMutation = useMutation({
+    mutationFn: (id: string) => ordersApi.deliver(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
+  })
+
+  // --- Payment view overlay ---
   if (viewPaymentOrder) {
     return (
       <PaymentScreen
@@ -254,7 +265,6 @@ export default function Orders() {
                   <th className="text-right py-3 px-4 font-semibold">Total</th>
                   <th className="text-left py-3 px-4 font-semibold">Status</th>
                   <th className="text-center py-3 px-4 font-semibold shrink-0">Delivered</th>
-                  <th className="text-center py-3 px-4 font-semibold">Pay</th>
                   <th className="text-left py-3 px-4 font-semibold">Wallet</th>
                   <th className="text-left py-3 px-4 font-semibold">Device</th>
                   <th className="text-left py-3 px-4 font-semibold">Time</th>
@@ -291,38 +301,42 @@ export default function Orders() {
                           <span className="text-gray-600">-</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-center">
-                        {(order.status === 'pending' || order.status === 'paid' || order.status === 'delivered') && order.payment_address && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setViewPaymentOrder(order)
-                            }}
-                            className="p-1.5 hover:bg-gray-600 rounded-lg transition"
-                            title="View Payment"
-                          >
-                            <QrCode size={16} className="text-monero-400" />
-                          </button>
-                        )}
-                      </td>
                       <td className="py-3 px-4 text-sm text-gray-400">{order.wallet_name || '-'}</td>
                       <td className="py-3 px-4 text-sm text-gray-400">{order.device_name}</td>
                       <td className="py-3 px-4 text-sm text-gray-400">
                         {new Date(order.created_at).toLocaleTimeString()}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <ChevronDown
-                          size={18}
-                          className={`mx-auto transition-transform ${expandedOrder === order.id ? 'rotate-180' : ''
-                            }`}
-                        />
+                        <div className="flex items-center justify-center gap-1">
+                          {(order.status === 'pending' || order.status === 'paid' || order.status === 'delivered') && order.payment_address && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setViewPaymentOrder(order)
+                              }}
+                              className={`p-1.5 rounded-lg transition ${
+                                order.status === 'pending'
+                                  ? 'bg-monero-600/20 text-monero-400 hover:bg-monero-600/40'
+                                  : 'bg-green-600/20 text-green-400 hover:bg-green-600/40'
+                              }`}
+                              title={order.status === 'pending' ? 'Open Payment' : 'View Payment'}
+                            >
+                              <QrCode size={16} />
+                            </button>
+                          )}
+                          <ChevronDown
+                            size={18}
+                            className={`transition-transform ${expandedOrder === order.id ? 'rotate-180' : ''
+                              }`}
+                          />
+                        </div>
                       </td>
                     </tr>
 
                     {/* Expanded Details */}
                     {expandedOrder === order.id && (
                       <tr className="border-b border-gray-700/50 bg-gray-700/20">
-                        <td colSpan={11} className="py-4 px-4">
+                        <td colSpan={10} className="py-4 px-4">
                           <div className="space-y-3">
                             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                               <div>
@@ -429,7 +443,19 @@ export default function Orders() {
                             )}
 
                             {/* Order actions */}
-                            <div className="flex gap-2 pt-3 border-t border-gray-700">
+                            <div className="flex gap-2 pt-3 border-t border-gray-700 flex-wrap">
+                              {(order.status === 'pending' || order.status === 'paid' || order.status === 'delivered') && order.payment_address && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setViewPaymentOrder(order)
+                                  }}
+                                  className="px-3 py-1.5 bg-monero-600 hover:bg-monero-700 rounded text-sm text-white font-medium transition inline-flex items-center gap-1"
+                                >
+                                  <QrCode size={14} />
+                                  {order.status === 'pending' ? 'Open Payment' : 'View Payment'}
+                                </button>
+                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
@@ -440,18 +466,6 @@ export default function Orders() {
                                 <Printer size={14} />
                                 Print Receipt
                               </button>
-                              {(order.status === 'pending' || order.status === 'paid' || order.status === 'delivered') && order.payment_address && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setViewPaymentOrder(order)
-                                  }}
-                                  className="px-3 py-1.5 bg-monero-600/20 hover:bg-monero-600/40 border border-monero-600 rounded text-sm text-monero-200 transition inline-flex items-center gap-1"
-                                >
-                                  <QrCode size={14} />
-                                  {order.status === 'pending' ? 'Open Payment' : 'View Payment'}
-                                </button>
-                              )}
                               {order.status === 'pending' && (
                                 confirmAction?.orderId === order.id && confirmAction?.type === 'cancel' ? (
                                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>

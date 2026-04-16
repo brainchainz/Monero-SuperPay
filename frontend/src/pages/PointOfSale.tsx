@@ -9,6 +9,7 @@ import {
   rate as rateApi,
   categories as categoriesApi,
   settings as settingsApi,
+  resolveImageUrl,
 } from '../lib/api'
 import { useWebSocket } from '../lib/websocket'
 import type { Product, Category } from '../lib/types'
@@ -38,7 +39,6 @@ export default function PointOfSale() {
   const [showCustomTip, setShowCustomTip] = useState(false)
   const [editingNoteIndex, setEditingNoteIndex] = useState<number | null>(null)
   const [noteInput, setNoteInput] = useState('')
-
 
   // Calculator keypad state
   const [calcDisplay, setCalcDisplay] = useState('0')
@@ -325,7 +325,6 @@ export default function PointOfSale() {
   }
 
   const calcExprDisplay = calcPending !== null && calcOp ? `${calcPending} ${calcOp}` : ''
-
 
   // Group products by category
   const activeProducts = products.filter((p: Product) => p.active !== false)
@@ -760,7 +759,7 @@ export default function PointOfSale() {
                           )}
                           {product.image_url ? (
                             <img
-                              src={product.image_url}
+                              src={resolveImageUrl(product.image_url)}
                               alt={product.name}
                               className="w-full h-28 object-cover rounded-lg mb-2"
                             />
@@ -852,7 +851,7 @@ export default function PointOfSale() {
                         <div className="flex items-start gap-2">
                           {item.product.image_url && (
                             <img
-                              src={item.product.image_url}
+                              src={resolveImageUrl(item.product.image_url)}
                               alt={item.product.name}
                               className="w-10 h-10 rounded object-cover flex-shrink-0"
                             />
@@ -881,8 +880,13 @@ export default function PointOfSale() {
                                   type="number"
                                   min="1"
                                   value={item.quantity}
-                                  onChange={(e) => { const val = parseInt(e.target.value); if (!isNaN(val)) setQuantity(idx, val) }}
-                                  onBlur={(e) => { if (!e.target.value || parseInt(e.target.value) <= 0) setQuantity(idx, 1) }}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value)
+                                    if (!isNaN(val)) setQuantity(idx, val)
+                                  }}
+                                  onBlur={(e) => {
+                                    if (!e.target.value || parseInt(e.target.value) <= 0) setQuantity(idx, 1)
+                                  }}
                                   className="w-10 text-center text-sm font-bold bg-transparent border border-gray-600 rounded px-0 py-0 focus:border-monero-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                                 <button
@@ -1048,25 +1052,30 @@ export default function PointOfSale() {
 
                 {/* Calculator grid: 4 cols */}
                 <div className="grid grid-cols-4 gap-2">
+                  {/* Row 1: C, ←, ×, − */}
                   <button onClick={calcHandleClear} className="p-4 bg-red-900/30 hover:bg-red-900/50 border border-red-700/50 rounded-lg text-lg font-bold text-red-200 transition active:scale-95">C</button>
                   <button onClick={calcHandleBackspace} className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-lg font-bold transition active:scale-95">←</button>
                   <button onClick={() => calcHandleOp('×')} className={`p-4 rounded-lg text-lg font-bold transition active:scale-95 ${calcOp === '×' ? 'bg-monero-600 text-white' : 'bg-yellow-900/30 hover:bg-yellow-900/50 border border-yellow-700/50 text-yellow-200'}`}>×</button>
                   <button onClick={() => calcHandleOp('-')} className={`p-4 rounded-lg text-lg font-bold transition active:scale-95 ${calcOp === '-' ? 'bg-monero-600 text-white' : 'bg-yellow-900/30 hover:bg-yellow-900/50 border border-yellow-700/50 text-yellow-200'}`}>−</button>
 
+                  {/* Row 2: 7 8 9 + */}
                   <button onClick={() => calcHandleDigit('7')} className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-2xl font-bold transition active:scale-95">7</button>
                   <button onClick={() => calcHandleDigit('8')} className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-2xl font-bold transition active:scale-95">8</button>
                   <button onClick={() => calcHandleDigit('9')} className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-2xl font-bold transition active:scale-95">9</button>
                   <button onClick={() => calcHandleOp('+')} className={`p-4 row-span-2 rounded-lg text-lg font-bold transition active:scale-95 ${calcOp === '+' ? 'bg-monero-600 text-white' : 'bg-yellow-900/30 hover:bg-yellow-900/50 border border-yellow-700/50 text-yellow-200'}`}>+</button>
 
+                  {/* Row 3: 4 5 6 (+ continues) */}
                   <button onClick={() => calcHandleDigit('4')} className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-2xl font-bold transition active:scale-95">4</button>
                   <button onClick={() => calcHandleDigit('5')} className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-2xl font-bold transition active:scale-95">5</button>
                   <button onClick={() => calcHandleDigit('6')} className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-2xl font-bold transition active:scale-95">6</button>
 
+                  {/* Row 4: 1 2 3 = */}
                   <button onClick={() => calcHandleDigit('1')} className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-2xl font-bold transition active:scale-95">1</button>
                   <button onClick={() => calcHandleDigit('2')} className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-2xl font-bold transition active:scale-95">2</button>
                   <button onClick={() => calcHandleDigit('3')} className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-2xl font-bold transition active:scale-95">3</button>
                   <button onClick={calcHandleEquals} className="p-4 row-span-2 bg-monero-600 hover:bg-monero-700 rounded-lg text-lg font-bold transition active:scale-95">=</button>
 
+                  {/* Row 5: 0 . (= continues) */}
                   <button onClick={() => calcHandleDigit('0')} className="p-4 col-span-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-2xl font-bold transition active:scale-95">0</button>
                   <button onClick={() => calcHandleDigit('.')} className="p-4 bg-gray-700 hover:bg-gray-600 rounded-lg text-2xl font-bold transition active:scale-95">.</button>
                 </div>
@@ -1084,7 +1093,7 @@ export default function PointOfSale() {
             </Card>
           </div>
 
-          {/* Right: Shared Cart Sidebar */}
+          {/* Right: Shared Cart Sidebar (same as products mode) */}
           <div className="w-80 flex-shrink-0">
             <div className="sticky top-4 space-y-4">
               <Card>
@@ -1145,8 +1154,13 @@ export default function PointOfSale() {
                                   type="number"
                                   min="1"
                                   value={item.quantity}
-                                  onChange={(e) => { const val = parseInt(e.target.value); if (!isNaN(val)) setQuantity(idx, val) }}
-                                  onBlur={(e) => { if (!e.target.value || parseInt(e.target.value) <= 0) setQuantity(idx, 1) }}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value)
+                                    if (!isNaN(val)) setQuantity(idx, val)
+                                  }}
+                                  onBlur={(e) => {
+                                    if (!e.target.value || parseInt(e.target.value) <= 0) setQuantity(idx, 1)
+                                  }}
                                   className="w-10 text-center text-sm font-bold bg-transparent border border-gray-600 rounded px-0 py-0 focus:border-monero-500 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                                 <button
@@ -1179,6 +1193,7 @@ export default function PointOfSale() {
                   </div>
                 )}
 
+                {/* Summary */}
                 {cart.length > 0 && (
                   <div className="border-t border-gray-700 pt-3 mt-3 space-y-1">
                     {showFiat && (
@@ -1205,6 +1220,7 @@ export default function PointOfSale() {
                 )}
               </Card>
 
+              {/* Customer info + Charge */}
               {cart.length > 0 && (
                 <Card>
                   <div className="space-y-3">

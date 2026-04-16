@@ -34,7 +34,7 @@ const navItems = [
 export default function Sidebar() {
   const location = useLocation()
   const [isOpen, setIsOpen] = useState(false)
-  const { lock } = useLock()
+  const { hasPinSet } = useLock()
 
   const { data: walletStatus } = useQuery({
     queryKey: ['wallet-status'],
@@ -89,19 +89,7 @@ export default function Sidebar() {
         </div>
 
         {/* Store Switcher */}
-        <StoreSwitcher />
-
-        {/* Lock Button */}
-        <div className="px-4 py-2">
-          <button
-            onClick={() => lock()}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-300 transition"
-            title="Lock the app"
-          >
-            <Lock size={16} />
-            <span className="text-sm font-medium">Lock</span>
-          </button>
-        </div>
+        <StoreSwitcher onStoreSwitch={() => setIsOpen(false)} />
 
         {/* Nav */}
         <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
@@ -120,6 +108,22 @@ export default function Sidebar() {
             </Link>
           ))}
         </nav>
+
+        {/* Lock Button — only visible when a PIN is configured */}
+        {hasPinSet && (
+          <div className="p-4 border-t border-gray-700">
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('lock-app'))
+              }}
+              className="w-full flex items-center justify-center gap-2 p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition text-gray-300 hover:text-white text-sm"
+              title="Lock app"
+            >
+              <Lock size={16} />
+              Lock
+            </button>
+          </div>
+        )}
 
         {/* Status Footer */}
         <div className="p-4 border-t border-gray-700 space-y-3">

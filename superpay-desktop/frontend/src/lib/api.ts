@@ -277,6 +277,32 @@ export const stores = {
     // Returns download URL for the .superpay file
     return `${getApiBase()}/stores/${id}/export`
   },
+  importStore: async (file: File): Promise<{ id: string; name: string }> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const resp = await fetch(`${getApiBase()}/stores/import`, {
+      method: 'POST',
+      body: formData,
+    })
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: 'Import failed' }))
+      throw new APIError(resp.status, err.error || 'Import failed')
+    }
+    const json = await resp.json()
+    return json.data || json
+  },
+}
+
+// Platform detection
+// Wails injects __SUPERPAY_API_BASE__ with a localhost URL in desktop mode.
+// On Umbrel/Docker, the frontend is served by the Go backend directly (no Wails runtime),
+// so getApiBase() returns '/api' (relative path).
+export function isDesktopApp(): boolean {
+  return !!(window as any).__SUPERPAY_API_BASE__ && (window as any).__SUPERPAY_API_BASE__.startsWith('http://localhost')
+}
+
+export function isUmbrelMode(): boolean {
+  return !isDesktopApp()
 }
 
 export { APIError }

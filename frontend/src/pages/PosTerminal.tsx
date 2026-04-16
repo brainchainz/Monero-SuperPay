@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Minus, Check, Clock, Package, Printer, Copy, Receipt, DollarSign, LogOut, ShoppingCart, ChevronLeft, QrCode, ClipboardList } from 'lucide-react'
 import { QRCodeSVG as QRCode } from 'qrcode.react'
 import { posApi, isDevicePaired, pairDevice, unpairDevice, getDeviceInfo, getDeviceType } from '../lib/deviceApi'
+import { resolveImageUrl } from '../lib/api'
 import { useWebSocket } from '../lib/websocket'
 import type { Product, Order, Category } from '../lib/types'
 import { printReceipt } from '../lib/receipt'
@@ -613,7 +614,7 @@ export default function PosTerminal() {
   if (view === 'payment' && createdOrder) {
     return (
       <div className="min-h-screen bg-gray-900 flex flex-col items-center p-4 overflow-y-auto">
-        {/* Back button — in document flow to avoid overlap */}
+        {/* Back button — go back to menu without cancelling */}
         <button
           onClick={() => setView('menu')}
           className="self-start inline-flex items-center gap-3 text-gray-400 hover:text-white transition px-4 py-3 rounded-xl hover:bg-gray-800 mb-2"
@@ -672,18 +673,12 @@ export default function PosTerminal() {
 
             {/* Right: Cart items + totals + countdown */}
             <div className="flex flex-col">
-              {/* Items list — Tip always sorted to the bottom */}
+              {/* Items list */}
               {createdOrder.items && createdOrder.items.length > 0 && (
                 <div className="bg-gray-700/30 rounded-lg p-3 mb-3 flex-1">
                   <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Items</p>
                   <div className="space-y-1.5">
-                    {[...createdOrder.items]
-                      .sort((a: any, b: any) => {
-                        const aIsTip = a.product_name?.toLowerCase() === 'tip' ? 1 : 0
-                        const bIsTip = b.product_name?.toLowerCase() === 'tip' ? 1 : 0
-                        return aIsTip - bIsTip
-                      })
-                      .map((item: any, idx: number) => (
+                    {createdOrder.items.map((item: any, idx: number) => (
                       <div key={idx} className="flex justify-between text-sm">
                         <div className="text-gray-300 flex-1 min-w-0">
                           {item.product_name}{item.quantity > 1 ? ` x${item.quantity}` : ''}
@@ -1165,7 +1160,7 @@ export default function PosTerminal() {
               Add ${Math.abs(calcTotal).toFixed(2)} to Cart
             </button>
           </div>
-      </div>
+        </div>
   )
 
   // --- Main layout with persistent nav bar ---
@@ -1261,7 +1256,7 @@ export default function PosTerminal() {
                     <div className="flex items-center gap-3">
                       {item.product.image_url && (
                         <img
-                          src={item.product.image_url}
+                          src={resolveImageUrl(item.product.image_url)}
                           alt={item.product.name}
                           className="w-12 h-12 rounded-lg object-cover"
                         />
@@ -1456,7 +1451,7 @@ export default function PosTerminal() {
                         )}
                         {product.image_url ? (
                           <img
-                            src={product.image_url}
+                            src={resolveImageUrl(product.image_url)}
                             alt={product.name}
                             className="w-full h-24 object-cover rounded-lg mb-2"
                           />

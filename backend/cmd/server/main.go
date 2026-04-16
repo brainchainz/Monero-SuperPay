@@ -153,18 +153,24 @@ func main() {
 		r.Put("/stores/{id}", handlers.UpdateStore(handlerDeps))
 		r.Post("/stores/{id}/switch", handlers.SwitchStore(handlerDeps))
 		r.Delete("/stores/{id}", handlers.DeleteStore(handlerDeps))
-		r.Post("/stores/{id}/export", handlers.ExportStore(handlerDeps))
+		r.Get("/stores/{id}/export", handlers.ExportStore(handlerDeps))
 		r.Post("/stores/import", handlers.ImportStore(handlerDeps))
 
 		// Settings
 		r.Get("/settings", handlers.GetSettings(handlerDeps))
 		r.Put("/settings", handlers.UpdateSettings(handlerDeps))
 
+		// Node status (auto-configured on Umbrel) + manual test/connect
+		r.Get("/node/status", handlers.GetNodeStatus(handlerDeps))
+		r.Post("/node/test", handlers.TestNodeConnection(handlerDeps))
+		r.Post("/node/connect", handlers.ConnectNode(handlerDeps))
+
 		// Wallet setup
 		r.Get("/wallet/status", handlers.GetWalletStatus(handlerDeps))
 		r.Post("/wallet/setup", handlers.SetupWallet(handlerDeps))
 		r.Get("/wallet/list", handlers.ListWallets(handlerDeps))
 		r.Post("/wallet/delete", handlers.DeleteWallet(handlerDeps))
+		r.Post("/wallet/delete-file", handlers.DeleteWalletFile(handlerDeps))
 
 		// WebSocket (real-time order + payment updates)
 		r.Get("/ws", handlers.WebSocketHandler(handlerDeps))
