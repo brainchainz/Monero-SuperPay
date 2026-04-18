@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"github.com/monero-superpay/superpay-desktop/internal/config"
 	"github.com/monero-superpay/superpay-desktop/internal/db"
 	"github.com/monero-superpay/superpay-desktop/internal/handlers"
@@ -67,6 +68,12 @@ func (a *App) startup(ctx context.Context) {
 	if dbPath == "" {
 		log.Printf("[app] No active store configured")
 		return
+	}
+
+	// Point uploads at the active store's directory (not the global one)
+	activeUploadsDir := a.storeMgr.GetActiveUploadDir()
+	if activeUploadsDir != "" {
+		a.cfg.UploadDir = activeUploadsDir
 	}
 
 	// Initialize database with the active store's path
@@ -227,6 +234,11 @@ func (a *App) SwitchStore(storeID string) error {
 		a.deps.DB = newDB
 	}
 
+	// Update uploads directory to point to the new store
+	newUploadsDir := filepath.Join(a.storeMgr.GetStoreDir(storeID), "uploads")
+	os.MkdirAll(newUploadsDir, 0755)
+	a.cfg.UploadDir = newUploadsDir
+
 	// Sync global node config into the new store's settings DB for the UI
 	a.syncNodeSettingsToDB()
 
@@ -244,6 +256,14 @@ func (a *App) SwitchStore(storeID string) error {
 		}
 	}
 
+	// If the new store has wallet-info.json (from an imported store), restore the wallet
+	storeDir := a.storeMgr.GetStoreDir(storeID)
+	if a.cfg.WalletRPCURL != "" {
+		if err := handlers.RestoreWalletFromInfo(a.cfg.WalletRPCURL, storeDir, newDB); err != nil {
+			log.Printf("[app] Warning: failed to restore wallet from store: %v", err)
+		}
+	}
+
 	// Re-open wallet and restart payment monitor for the new store
 	if a.cfg.MoneroNodeIP != "" {
 		go payments.AutoOpenWallet(a.cfg, newDB)
@@ -253,6 +273,65 @@ func (a *App) SwitchStore(storeID string) error {
 
 	log.Printf("[app] Successfully switched to store: %s (%s)", storeID, targetStore.Name)
 	return nil
+}
+
+// ExportStoreToFile opens a native Save dialog and exports the store as a .superpay file.
+// This is called from the frontend because Wails WebKit doesn't support blob downloads.
+func (a *App) ExportStoreToFile(storeID string, storeName string) (string, error) {
+	if a.storeMgr == nil {
+		return "", fmt.Errorf("store manager not initialized")
+	}
+
+	// Open native Save dialog
+	savePath, err := wailsRuntime.SaveFileDialog(a.ctx, wailsRuntime.SaveDialogOptions{
+		DefaultFilename: storeName + ".superpay",
+		Title:           "Export Store",
+		Filters: []wailsRuntime.FileFilter{
+			{DisplayName: "SuperPay Store", Pattern: "*.superpay"},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("save dialog error: %w", err)
+	}
+	if savePath == "" {
+		return "", nil // User cancelled
+	}
+
+	// Ensure product images are in the store's uploads dir before exporting
+	// (they may still be in the legacy global uploads dir)
+	activeStore := a.storeMgr.GetActive()
+	if activeStore != nil && activeStore.ID == storeID && a.db != nil {
+		handlers.EnsureProductImagesInStoreDir(a.db, a.cfg.UploadDir, a.storeMgr.GetStoreDir(storeID))
+
+		// Capture wallet credentials so the wallet can be restored on import
+		walletConfigured := handlers.GetSettingFromDB(a.db, "wallet_configured")
+		if walletConfigured == "true" && a.cfg.WalletRPCURL != "" {
+			if err := handlers.CaptureWalletInfo(a.cfg.WalletRPCURL, a.storeMgr.GetStoreDir(storeID), a.db); err != nil {
+				log.Printf("[app-export] Warning: could not capture wallet info: %v", err)
+			}
+		}
+
+		a.db.Exec("PRAGMA wal_checkpoint(TRUNCATE)")
+	}
+
+	// storeMgr.Export expects a directory and creates storeID.superpay inside it.
+	// The save dialog gives us a full file path, so use its parent directory
+	// and rename the output to match what the user chose.
+	destDir := filepath.Dir(savePath)
+	exportedPath, err := a.storeMgr.Export(storeID, destDir)
+	if err != nil {
+		return "", fmt.Errorf("export failed: %w", err)
+	}
+
+	// Rename from storeID.superpay to the user's chosen filename
+	if exportedPath != savePath {
+		if err := os.Rename(exportedPath, savePath); err != nil {
+			// If rename fails, the file still exists at exportedPath
+			return exportedPath, nil
+		}
+	}
+
+	return savePath, nil
 }
 
 // syncNodeSettingsToDB writes the global node config (from config.json) into the
@@ -402,13 +481,12 @@ func (a *App) setupRouter() *chi.Mux {
 		})
 	})
 
-	// Serve uploaded product images from Application Support directory
-	uploadsDir := a.cfg.UploadDir
-	if uploadsDir == "" {
-		uploadsDir = config.DataDir() + "/uploads"
-	}
-	os.MkdirAll(uploadsDir, 0755)
-	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadsDir))))
+	// Serve uploaded product images — reads cfg.UploadDir dynamically so store
+	// switches take effect without restarting the app.
+	os.MkdirAll(a.cfg.UploadDir, 0755)
+	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.FileServer(http.Dir(a.cfg.UploadDir)).ServeHTTP(w, r)
+	})))
 
 	// Health check
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {

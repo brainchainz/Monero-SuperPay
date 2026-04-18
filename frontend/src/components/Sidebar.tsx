@@ -46,12 +46,11 @@ export default function Sidebar() {
   const walletConnected = walletStatus?.configured ?? false
   const isSyncing = walletStatus?.syncing ?? false
   const blocksLeft = walletStatus?.blocks_to_sync ?? 0
-  const walletHeight = walletStatus?.height ?? 0
   const daemonHeight = walletStatus?.daemon_height ?? 0
 
   const syncPct =
-    isSyncing && daemonHeight > 0 && walletHeight > 0
-      ? Math.min(99, Math.round((walletHeight / daemonHeight) * 100))
+    isSyncing && daemonHeight > 0
+      ? Math.min(99, Math.round(((daemonHeight - blocksLeft) / daemonHeight) * 100))
       : walletConnected && daemonOnline
         ? 100
         : 0

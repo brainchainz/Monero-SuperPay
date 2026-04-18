@@ -220,6 +220,7 @@ func SetupWallet(deps *Dependencies) http.HandlerFunc {
 		SetSetting(deps.DB, "wallet_address", maskedAddr)
 		SetSetting(deps.DB, "wallet_configured", "true")
 		SetSetting(deps.DB, "wallet_filename", filename)
+		SetSetting(deps.DB, "wallet_restore_height", fmt.Sprintf("%d", req.RestoreHeight))
 
 		respondSuccess(w, http.StatusOK, map[string]interface{}{
 			"status":  "ok",
@@ -505,6 +506,19 @@ func GetWalletStatus(deps *Dependencies) http.HandlerFunc {
 			}
 		}
 
+		// If wallet height is below restore_height, the wallet hasn't started
+		// scanning yet — use restore_height as the effective floor so the
+		// "blocks left" counter reflects actual remaining work, not total chain.
+		restoreHeightStr := getSettingFromDB(deps.DB, "wallet_restore_height")
+		var restoreHeight int64
+		if restoreHeightStr != "" {
+			fmt.Sscanf(restoreHeightStr, "%d", &restoreHeight)
+		}
+		effectiveHeight := status.Height
+		if restoreHeight > 0 && effectiveHeight < restoreHeight {
+			effectiveHeight = restoreHeight
+		}
+
 		// 2. Get Daemon height and status
 		daemonResp, err := callDaemonRPC(deps.Cfg, "get_info", nil)
 		if err == nil && daemonResp != nil && daemonResp.Error == nil {
@@ -521,11 +535,10 @@ func GetWalletStatus(deps *Dependencies) http.HandlerFunc {
 					status.DaemonHeight = daemonResult.TargetHeight
 				}
 
-				// Determine sync status and generic blocks left
+				// Determine sync status and blocks remaining
 				if status.Height < status.DaemonHeight {
 					status.Syncing = true
-					status.BlocksToSync = status.DaemonHeight - status.Height
-					// Avoid negative blocks under edge conditions
+					status.BlocksToSync = status.DaemonHeight - effectiveHeight
 					if status.BlocksToSync < 0 {
 						status.BlocksToSync = 0
 					}

@@ -1260,18 +1260,11 @@ export default function Settings() {
                       <button
                         onClick={async () => {
                           try {
-                            const exportUrl = storesApi.exportStore(store.id)
-                            const resp = await fetch(exportUrl)
-                            if (!resp.ok) throw new Error('Export failed')
-                            const blob = await resp.blob()
-                            const url = URL.createObjectURL(blob)
-                            const a = document.createElement('a')
-                            a.href = url
-                            a.download = `${store.name}.superpay`
-                            document.body.appendChild(a)
-                            a.click()
-                            document.body.removeChild(a)
-                            URL.revokeObjectURL(url)
+                            // Use Wails Go binding for native Save dialog
+                            const result = await (window as any).go.main.App.ExportStoreToFile(store.id, store.name)
+                            if (result) {
+                              console.log('Store exported to:', result)
+                            }
                           } catch (err) {
                             console.error('Export failed:', err)
                           }

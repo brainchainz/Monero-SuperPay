@@ -290,6 +290,12 @@ func UpdateHeartbeat(deps *Dependencies) http.HandlerFunc {
 	}
 }
 
+// GetSettingFromDB reads a single setting value, returns "" if not found.
+// Exported so main.go can check wallet_configured before export.
+func GetSettingFromDB(db *sql.DB, key string) string {
+	return getSettingFromDB(db, key)
+}
+
 // getSettingFromDB reads a single setting value, returns "" if not found
 func getSettingFromDB(db *sql.DB, key string) string {
 	var value string

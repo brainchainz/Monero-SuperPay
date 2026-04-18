@@ -246,7 +246,7 @@ export const settings = {
 export const wallet = {
   status: () => get<WalletStatus>('/wallet/status'),
   setup: (data: { primary_address: string; secret_view_key: string; restore_height?: number; wallet_name?: string }) =>
-    post<{ status: string; message: string; address: string }>('/wallet/setup', data),
+    post<{ status: string; message: string; address: string }>('/wallet/setup', { ...data, confirm_overwrite: true }),
   list: () => get<WalletFile[]>('/wallet/list'),
   delete: () => post<{ status: string; message: string }>('/wallet/delete'),
   deleteFile: (name: string) => post<{ status: string; message: string }>('/wallet/delete-file', { name }),

@@ -18,8 +18,8 @@ build-mac:
 build-dmg: build-mac
 	@echo "Creating DMG installer..."
 	@test -d "build/bin/MoneroSuperPay.app" || (echo "Error: MoneroSuperPay.app not found" && exit 1)
-	@./scripts/build-dmg.sh build/bin/MoneroSuperPay.app 1.0.0
-	@echo "DMG ready at build/MoneroSuperPay-1.0.0.dmg"
+	@./scripts/build-dmg.sh build/bin/MoneroSuperPay.app 1.2.1
+	@echo "DMG ready at build/MoneroSuperPay-1.2.1.dmg"
 
 # Build for both Intel and Apple Silicon
 build-universal:

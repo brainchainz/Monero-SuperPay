@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/monero-superpay/superpay-desktop/internal/store"
@@ -195,6 +198,24 @@ func ExportStore(deps *Dependencies) http.HandlerFunc {
 			return
 		}
 
+		// If exporting the active store, ensure product images are in the
+		// store's uploads dir (they may still be in the legacy global dir),
+		// capture wallet credentials, and flush the WAL so the .db file is complete.
+		activeStore := deps.StoreMgr.GetActive()
+		if activeStore != nil && activeStore.ID == storeID {
+			EnsureProductImagesInStoreDir(deps.DB, deps.Cfg.UploadDir, deps.StoreMgr.GetStoreDir(storeID))
+
+			// Capture wallet credentials so the wallet can be restored on import
+			walletConfigured := getSettingFromDB(deps.DB, "wallet_configured")
+			if walletConfigured == "true" && deps.Cfg.WalletRPCURL != "" {
+				if err := CaptureWalletInfo(deps.Cfg.WalletRPCURL, deps.StoreMgr.GetStoreDir(storeID), deps.DB); err != nil {
+					log.Printf("[store-export] Warning: could not capture wallet info: %v", err)
+				}
+			}
+
+			deps.DB.Exec("PRAGMA wal_checkpoint(TRUNCATE)")
+		}
+
 		// Get the base directory for temporary exports
 		tempDir := os.TempDir()
 		exportDir := filepath.Join(tempDir, "monero-superpay-exports")
@@ -283,5 +304,259 @@ func ImportStore(deps *Dependencies) http.HandlerFunc {
 		os.Remove(tempFile)
 
 		respondJSON(w, http.StatusCreated, importedStore)
+	}
+}
+
+// WalletInfo holds the wallet credentials needed to recreate a view-only wallet.
+// Saved as wallets/wallet-info.json inside the store directory during export.
+type WalletInfo struct {
+	PrimaryAddress string `json:"primary_address"`
+	SecretViewKey  string `json:"secret_view_key"`
+	RestoreHeight  int64  `json:"restore_height"`
+	Filename       string `json:"filename,omitempty"`
+}
+
+// CaptureWalletInfo queries wallet-rpc for the full address and private view key,
+// reads the original restore height from the DB, then saves them as
+// wallets/wallet-info.json in the store dir so the wallet can be recreated on import.
+func CaptureWalletInfo(walletRPCURL string, storeDir string, database *sql.DB) error {
+	walletsDir := filepath.Join(storeDir, "wallets")
+	os.MkdirAll(walletsDir, 0755)
+
+	// Get primary address
+	addrResp, err := callWalletRPC(walletRPCURL, "get_address", map[string]interface{}{"account_index": 0})
+	if err != nil {
+		return fmt.Errorf("failed to get address: %w", err)
+	}
+	if addrResp.Error != nil {
+		return fmt.Errorf("wallet-rpc error (get_address): %s", addrResp.Error.Message)
+	}
+	var addrResult struct {
+		Address string `json:"address"`
+	}
+	if err := json.Unmarshal(addrResp.Result, &addrResult); err != nil || addrResult.Address == "" {
+		return fmt.Errorf("failed to parse address from wallet-rpc")
+	}
+
+	// Get private view key
+	keyResp, err := callWalletRPC(walletRPCURL, "query_key", map[string]interface{}{"key_type": "view_key"})
+	if err != nil {
+		return fmt.Errorf("failed to get view key: %w", err)
+	}
+	if keyResp.Error != nil {
+		return fmt.Errorf("wallet-rpc error (query_key): %s", keyResp.Error.Message)
+	}
+	var keyResult struct {
+		Key string `json:"key"`
+	}
+	if err := json.Unmarshal(keyResp.Result, &keyResult); err != nil || keyResult.Key == "" {
+		return fmt.Errorf("failed to parse view key from wallet-rpc")
+	}
+
+	// Read the original restore height and wallet filename from the DB
+	var restoreHeight int64
+	var walletFilename string
+	if database != nil {
+		heightStr := getSettingFromDB(database, "wallet_restore_height")
+		if heightStr != "" {
+			fmt.Sscanf(heightStr, "%d", &restoreHeight)
+		}
+		walletFilename = getSettingFromDB(database, "wallet_filename")
+	}
+
+	// If restore height wasn't saved (wallets set up before this feature),
+	// fall back to current wallet height — not the birthday, but better than 0
+	if restoreHeight == 0 {
+		heightResp, hErr := callWalletRPC(walletRPCURL, "get_height", nil)
+		if hErr == nil && heightResp.Error == nil {
+			var heightResult struct {
+				Height int64 `json:"height"`
+			}
+			json.Unmarshal(heightResp.Result, &heightResult)
+			restoreHeight = heightResult.Height
+			log.Printf("[store-export] wallet_restore_height not in DB, using current height %d as fallback", restoreHeight)
+		}
+	}
+
+	info := WalletInfo{
+		PrimaryAddress: addrResult.Address,
+		SecretViewKey:  keyResult.Key,
+		RestoreHeight:  restoreHeight,
+		Filename:       walletFilename,
+	}
+
+	data, err := json.MarshalIndent(info, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal wallet info: %w", err)
+	}
+
+	infoPath := filepath.Join(walletsDir, "wallet-info.json")
+	if err := os.WriteFile(infoPath, data, 0600); err != nil {
+		return fmt.Errorf("failed to write wallet-info.json: %w", err)
+	}
+
+	log.Printf("[store-export] Captured wallet credentials to wallet-info.json")
+	return nil
+}
+
+// RestoreWalletFromInfo reads wallets/wallet-info.json from a store directory
+// and sets up the wallet in wallet-rpc using generate_from_keys.
+// Only acts on freshly imported stores — skips if wallet-info.json doesn't exist,
+// and deletes wallet-info.json after a successful restore so it won't fire again.
+func RestoreWalletFromInfo(walletRPCURL string, storeDir string, database *sql.DB) error {
+	infoPath := filepath.Join(storeDir, "wallets", "wallet-info.json")
+	data, err := os.ReadFile(infoPath)
+	if err != nil {
+		return nil // No wallet-info.json — nothing to restore
+	}
+
+	var info WalletInfo
+	if err := json.Unmarshal(data, &info); err != nil {
+		return fmt.Errorf("failed to parse wallet-info.json: %w", err)
+	}
+
+	if info.PrimaryAddress == "" || info.SecretViewKey == "" {
+		return fmt.Errorf("wallet-info.json is missing address or view key")
+	}
+
+	log.Printf("[store-switch] Found wallet-info.json, restoring wallet...")
+
+	// Close any currently open wallet
+	callWalletRPC(walletRPCURL, "close_wallet", nil)
+
+	// Use a unique filename based on the store directory to guarantee a fresh
+	// wallet file with the correct restore height. monero-wallet-rpc silently
+	// opens an existing file when generate_from_keys is called with a name
+	// that already exists (no error returned), so we can never reuse names.
+	baseName := info.Filename
+	if baseName == "" {
+		baseName = "merchant_wallet"
+	}
+	storeIDShort := filepath.Base(storeDir)
+	if len(storeIDShort) > 8 {
+		storeIDShort = storeIDShort[:8]
+	}
+	filename := baseName + "_" + storeIDShort
+
+	log.Printf("[store-switch] Creating wallet %q with restore_height=%d", filename, info.RestoreHeight)
+
+	params := map[string]interface{}{
+		"filename":       filename,
+		"address":        info.PrimaryAddress,
+		"viewkey":        info.SecretViewKey,
+		"password":       "",
+		"restore_height": info.RestoreHeight,
+	}
+
+	resp, err := callWalletRPC(walletRPCURL, "generate_from_keys", params)
+	if err != nil {
+		return fmt.Errorf("failed to call wallet-rpc: %w", err)
+	}
+
+	if resp.Error != nil {
+		// If this unique name somehow already exists (same store re-imported),
+		// just open it — it was created with the correct restore height previously.
+		if resp.Error.Code == -21 || strings.Contains(strings.ToLower(resp.Error.Message), "already exists") {
+			log.Printf("[store-switch] Wallet %q already exists, opening it", filename)
+			openResp, openErr := callWalletRPC(walletRPCURL, "open_wallet", map[string]interface{}{
+				"filename": filename,
+				"password": "",
+			})
+			if openErr != nil || (openResp != nil && openResp.Error != nil) {
+				return fmt.Errorf("wallet exists but couldn't open: %v", resp.Error.Message)
+			}
+		} else {
+			return fmt.Errorf("wallet-rpc error: %s", resp.Error.Message)
+		}
+	}
+
+	// Update settings in DB
+	if database != nil {
+		maskedAddr := info.PrimaryAddress
+		if len(maskedAddr) > 16 {
+			maskedAddr = maskedAddr[:8] + "..." + maskedAddr[len(maskedAddr)-8:]
+		}
+		SetSetting(database, "wallet_configured", "true")
+		SetSetting(database, "wallet_address", maskedAddr)
+		SetSetting(database, "wallet_filename", filename)
+		SetSetting(database, "wallet_restore_height", fmt.Sprintf("%d", info.RestoreHeight))
+	}
+
+	// Delete wallet-info.json so this doesn't fire again on subsequent switches
+	os.Remove(infoPath)
+
+	log.Printf("[store-switch] Restored wallet from wallet-info.json (restore_height=%d)", info.RestoreHeight)
+	return nil
+}
+
+// ensureProductImagesInStoreDir copies product images referenced in the DB
+// into the store's uploads/ directory if they aren't already there. This
+// handles the migration from the legacy global uploads dir so that exports
+// include all images.
+func EnsureProductImagesInStoreDir(database *sql.DB, currentUploadDir string, storeDir string) {
+	storeUploads := filepath.Join(storeDir, "uploads")
+	os.MkdirAll(storeUploads, 0755)
+
+	rows, err := database.Query("SELECT image_path FROM products WHERE image_path != '' AND image_path IS NOT NULL")
+	if err != nil {
+		log.Printf("[store-export] Failed to query product images: %v", err)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var imagePath string
+		if err := rows.Scan(&imagePath); err != nil {
+			continue
+		}
+
+		// image_path is like "/uploads/uuid.jpg" — extract the filename
+		filename := strings.TrimPrefix(imagePath, "/uploads/")
+		if filename == "" || filename == imagePath {
+			continue
+		}
+
+		destPath := filepath.Join(storeUploads, filename)
+		if _, err := os.Stat(destPath); err == nil {
+			continue // already in store dir
+		}
+
+		// Try to find the file in the current upload dir
+		srcPath := filepath.Join(currentUploadDir, filename)
+		if _, err := os.Stat(srcPath); err != nil {
+			// Not in current dir — scan common legacy locations
+			// On Umbrel: /data/uploads, on Mac: DataDir/uploads
+			legacyDirs := []string{
+				filepath.Join(filepath.Dir(filepath.Dir(storeDir)), "uploads"), // baseDir/uploads
+			}
+			found := false
+			for _, dir := range legacyDirs {
+				candidate := filepath.Join(dir, filename)
+				if _, err := os.Stat(candidate); err == nil {
+					srcPath = candidate
+					found = true
+					break
+				}
+			}
+			if !found {
+				log.Printf("[store-export] Image not found for product: %s", filename)
+				continue
+			}
+		}
+
+		// Copy the file into the store's uploads dir
+		src, err := os.Open(srcPath)
+		if err != nil {
+			continue
+		}
+		dst, err := os.Create(destPath)
+		if err != nil {
+			src.Close()
+			continue
+		}
+		io.Copy(dst, src)
+		src.Close()
+		dst.Close()
+		log.Printf("[store-export] Migrated image to store dir: %s", filename)
 	}
 }

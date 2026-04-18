@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -20,11 +23,84 @@ import (
 	"github.com/monero-superpay/monero-superpay/internal/ws"
 )
 
+// serverStoreSwitcher implements handlers.StoreSwitcher for the Umbrel server.
+// It swaps the database connection and restarts the payment monitor when
+// the user switches to a different store.
+type serverStoreSwitcher struct {
+	cfg        *config.Config
+	deps       *handlers.Dependencies
+	storeMgr   *store.StoreManager
+	wsHub      *ws.Hub
+	paymentMon *payments.PaymentMonitor
+	currentDB  *sql.DB
+}
+
+func (s *serverStoreSwitcher) SwitchStore(storeID string) error {
+	newDBPath := filepath.Join(s.storeMgr.GetStoreDir(storeID), "merchant.db")
+
+	// Open the new store's database
+	newDB, err := db.Init(newDBPath)
+	if err != nil {
+		return fmt.Errorf("failed to open store database: %w", err)
+	}
+
+	// Close the old database
+	if s.currentDB != nil {
+		s.currentDB.Close()
+	}
+
+	// Update the shared handler dependencies so all API handlers use the new DB
+	s.deps.DB = newDB
+	s.currentDB = newDB
+
+	// Update uploads directory to point to the new store
+	newUploadsDir := filepath.Join(s.storeMgr.GetStoreDir(storeID), "uploads")
+	os.MkdirAll(newUploadsDir, 0755)
+	s.cfg.UploadDir = newUploadsDir
+
+	// If the new store has wallet-info.json (from an imported store), restore the wallet
+	storeDir := s.storeMgr.GetStoreDir(storeID)
+	if s.cfg.WalletRPCURL != "" {
+		if err := handlers.RestoreWalletFromInfo(s.cfg.WalletRPCURL, storeDir, newDB); err != nil {
+			log.Printf("[server] Warning: failed to restore wallet from store: %v", err)
+		}
+	}
+
+	// Restart payment monitor with the new DB
+	if s.paymentMon != nil {
+		s.paymentMon.Stop()
+	}
+	go payments.AutoOpenWallet(s.cfg, newDB)
+	s.paymentMon = payments.NewPaymentMonitor(s.cfg, newDB, s.wsHub)
+	s.paymentMon.Start()
+
+	log.Printf("[server] Switched to store: %s (db: %s)", storeID, newDBPath)
+	return nil
+}
+
 func main() {
 	// Load configuration from environment
 	cfg := config.Load()
 
-	// Initialize database
+	// Initialize StoreManager FIRST so we can use the active store's DB path
+	dataDir := "/data"
+	storeMgr := store.NewStoreManager(dataDir)
+	if err := storeMgr.Init(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize store manager: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Use the active store's database and uploads directory (not the global paths)
+	activeDBPath := storeMgr.GetActiveDBPath()
+	if activeDBPath != "" {
+		cfg.DatabasePath = activeDBPath
+	}
+	activeUploadsDir := storeMgr.GetActiveUploadDir()
+	if activeUploadsDir != "" {
+		cfg.UploadDir = activeUploadsDir
+	}
+
+	// Initialize database with the active store's path
 	database, err := db.Init(cfg.DatabasePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize database: %v\n", err)
@@ -71,17 +147,6 @@ func main() {
 	wsHub := ws.NewHub()
 	go wsHub.Run()
 
-	// Initialize StoreManager with /data directory
-	dataDir := "/data"
-	if dataDir == "" {
-		dataDir = "./data"
-	}
-	storeMgr := store.NewStoreManager(dataDir)
-	if err := storeMgr.Init(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to initialize store manager: %v\n", err)
-		os.Exit(1)
-	}
-
 	// Auto-detect Tor address and Tailscale IP from the host environment
 	handlers.AutoDetectNetworkSettings(cfg, database)
 
@@ -100,6 +165,17 @@ func main() {
 		WSHub:    wsHub,
 		StoreMgr: storeMgr,
 	}
+
+	// Wire up StoreSwitcher so store import/switch actually swaps the DB
+	switcher := &serverStoreSwitcher{
+		cfg:        cfg,
+		deps:       handlerDeps,
+		storeMgr:   storeMgr,
+		wsHub:      wsHub,
+		paymentMon: paymentMonitor,
+		currentDB:  database,
+	}
+	handlerDeps.StoreSwitcher = switcher
 
 	// API Routes
 	r.Route("/api", func(r chi.Router) {
@@ -196,13 +272,12 @@ func main() {
 		})
 	})
 
-	// Serve uploaded product images from the uploads directory
-	uploadsDir := cfg.UploadDir
-	if uploadsDir == "" {
-		uploadsDir = "./data/uploads"
-	}
-	os.MkdirAll(uploadsDir, 0755)
-	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadsDir))))
+	// Serve uploaded product images — reads cfg.UploadDir dynamically so store
+	// switches take effect without restarting the server.
+	os.MkdirAll(cfg.UploadDir, 0755)
+	r.Handle("/uploads/*", http.StripPrefix("/uploads/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.FileServer(http.Dir(cfg.UploadDir)).ServeHTTP(w, r)
+	})))
 
 	// Serve static frontend files
 	serveStaticFiles(r)
