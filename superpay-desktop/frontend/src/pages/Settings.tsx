@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AlertCircle, CheckCircle, Wallet, Eye, Server, Globe, Wifi, Shield, XCircle, Loader2, Download, Upload, Edit2, Trash2, Package, Lock } from 'lucide-react'
 import Card from '../components/Card'
-import { settings as settingsApi, wallet as walletApi, stores as storesApi, getApiBase, isUmbrelMode } from '../lib/api'
+import { settings as settingsApi, wallet as walletApi, stores as storesApi, getApiBase } from '../lib/api'
 import { Store } from '../lib/types'
 import { useLock } from '../context/LockContext'
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime'
@@ -689,34 +689,6 @@ export default function Settings() {
           <span className={`text-sm font-medium ${nodeStatus.color}`}>{nodeStatus.label}</span>
         </div>
 
-        {/* Umbrel: simplified read-only status — node is managed by docker-compose */}
-        {isUmbrel ? (
-          <div className="space-y-4">
-            <div className="p-4 bg-gray-800 border border-gray-700 rounded-lg space-y-3">
-              <p className="text-sm text-gray-300">
-                Your Monero node connection is automatically managed by Umbrel.
-              </p>
-              {settingsData?.monero_node_url && (
-                <div className="flex items-center gap-2 text-xs text-gray-400">
-                  <Server size={14} className="flex-shrink-0" />
-                  <span className="font-mono">{settingsData.monero_node_url}</span>
-                </div>
-              )}
-              {walletStatus?.height && walletStatus.height > 0 && (
-                <div className="flex items-center gap-2 text-xs text-gray-400">
-                  <Package size={14} className="flex-shrink-0" />
-                  <span>Block height: {walletStatus.height.toLocaleString()}</span>
-                  {walletStatus?.target_height > 0 && walletStatus.target_height !== walletStatus.height && (
-                    <span className="text-yellow-400">/ {walletStatus.target_height.toLocaleString()}</span>
-                  )}
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-gray-500">
-              To change node settings, update environment variables in your Umbrel app configuration.
-            </p>
-          </div>
-        ) : (
         <div className="space-y-6">
           {/* Connection Type Selection */}
           <div>
@@ -954,7 +926,6 @@ export default function Settings() {
             )}
           </button>
         </div>
-        )}
       </Card>
 
       {/* Wallet Setup */}
