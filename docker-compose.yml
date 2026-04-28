@@ -1,0 +1,124 @@
+services:
+  app_proxy:
+    image: getumbrel/app-proxy:1.0.0
+    container_name: monero_superbrain_app_proxy
+    restart: on-failure
+    environment:
+      - APP_HOST=monero_superbrain_dashboard
+      - APP_PORT=3000
+      - LOG_LEVEL=debug
+      - PROXY_AUTH_ADD_HEADER_PREFIX=***
+    networks:
+      - default
+      - umbrel_main_network
+
+  dashboard:
+    image: sirjamzalot/monero-superbrain-dashboard:v1.1
+    container_name: monero_superbrain_dashboard
+    restart: always
+    environment:
+      - APP_DATA_DIR=${APP_DATA_DIR:-/data}
+      - APP_MONERO_NODE_IP=${APP_MONERO_NODE_IP:-monero_monerod_1}
+      - APP_MONERO_RPC_PORT=${APP_MONERO_RPC_PORT:-18081}
+      - APP_MONERO_ZMQ_PORT=${APP_MONERO_ZMQ_PORT:-18083}
+      - APP_MONERO_RPC_USER=${APP_MONERO_RPC_USER:-monero}
+      - APP_MONERO_RPC_PASS=${APP_MONERO_RPC_PASS:-monero}
+      - WALLET_ADDRESS=${WALLET_ADDRESS}
+      - DEV_WALLET=${DEV_WALLET}
+      - DEV_FEE_PERCENT=${DEV_FEE_PERCENT}
+      - P2POOL_CHAIN=${P2POOL_CHAIN}
+      - XMRIG_THREADS=${XMRIG_THREADS}
+    networks:
+      - default
+      - umbrel_main_network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${APP_DATA_DIR:-/data}:/data
+      - /home/umbrel/umbrel/app-data/monero:/home/umbrel/umbrel/app-data/monero:ro
+
+  p2pool:
+    image: sirjamzalot/superbrain-p2pool:v1.1
+    container_name: monero_superbrain_p2pool
+    restart: always
+    entrypoint: /bin/sh
+    command:
+      - "-c"
+      - |
+        set -e
+        if [ -f /home/umbrel/umbrel/app-data/monero/.env ]; then . /home/umbrel/umbrel/app-data/monero/.env; fi
+        if [ -f /data/.env ]; then . /data/.env; fi
+        WALLET="$${WALLET_ADDRESS:-43sEimq64TtLoBaEzzxf7wVd4XcZPuGtNRP7zhT7WAgB3th9dvCrJMad99pZNKBRDmJXXXUxeZie7W5tsm7TWVrPHbxvins}"
+        CHAIN="$${P2POOL_CHAIN:---mini}"
+        HOST="$${APP_MONERO_NODE_IP:-monero_monerod_1}"
+        RPC_PORT="$${APP_MONERO_RPC_PORT:-18081}"
+        ZMQ_PORT="$${APP_MONERO_ZMQ_PORT:-18083}"
+        RPC_USER="$${APP_MONERO_RPC_USER:-monero}"
+        RPC_PASS="$${APP_MONERO_RPC_PASS:-monero}"
+        DEV_ARGS=""
+        if [ -n "$${DEV_WALLET}" ] && [ "$${DEV_FEE_PERCENT:-0}" != "0" ]; then
+          DEV_ARGS="--dev-wallet $${DEV_WALLET} --dev-fee-percent $${DEV_FEE_PERCENT}"
+          echo "[superbrain] dev fee: $${DEV_FEE_PERCENT}% -> $${DEV_WALLET}"
+        fi
+        echo "[superbrain] starting p2pool: wallet=$$WALLET chain=$$CHAIN host=$$HOST"
+        exec p2pool --wallet "$$WALLET" --host "$$HOST" --rpc-port "$$RPC_PORT" --zmq-port "$$ZMQ_PORT" --stratum 0.0.0.0:3333 --p2p 0.0.0.0:37889 --addpeers 65.21.227.114:37888,node.sethforprivacy.com:37888 --loglevel 3 $$CHAIN --rpc-login "$$RPC_USER:$$RPC_PASS" $$DEV_ARGS
+    ports:
+      - "3333:3333"
+      - "37889:37889"
+    volumes:
+      - ${APP_DATA_DIR:-/data}:/data
+      - /home/umbrel/umbrel/app-data/monero:/home/umbrel/umbrel/app-data/monero:ro
+    networks:
+      - default
+      - umbrel_main_network
+
+  xmrig-proxy:
+    image: sirjamzalot/superbrain-proxy:v1.1
+    container_name: monero_superbrain_proxy
+    restart: always
+    depends_on:
+      - p2pool
+    command: >
+      xmrig-proxy -o p2pool:3333 -u SuperbrainProxy -b 0.0.0.0:8888 --http-host
+      0.0.0.0 --http-port 8080 --http-access-token superbrain
+    ports:
+      - "8888:8888"
+    volumes:
+      - ${APP_DATA_DIR:-/data}/proxy:/data
+    networks:
+      - default
+
+  xmrig:
+    image: sirjamzalot/superbrain-xmrig:v1.1
+    container_name: monero_superbrain_xmrig
+    restart: always
+    privileged: true
+    depends_on:
+      - xmrig-proxy
+    entrypoint: /bin/sh
+    command:
+      - "-c"
+      - |
+        if [ -f /data/.env ]; then . /data/.env; fi
+        THREADS="$${XMRIG_THREADS:-0}"
+        echo 1280 > /proc/sys/vm/nr_hugepages 2>/dev/null
+        echo 3 > /proc/sys/vm/nr_hugepages_mempolicy 2>/dev/null
+        sleep 2
+        echo "[superbrain] starting xmrig (threads: $${THREADS:-auto})"
+        if [ "$$THREADS" != "0" ] && [ -n "$$THREADS" ]; then
+          exec xmrig -o xmrig-proxy:8888 -u "Superbrain Miner" -p x --coin monero --donate-level 0 -k --randomx-1gb-pages --huge-pages-jit --threads "$$THREADS"
+        else
+          exec xmrig -o xmrig-proxy:8888 -u "Superbrain Miner" -p x --coin monero --donate-level 0 -k --randomx-1gb-pages --huge-pages-jit
+        fi
+    volumes:
+      - ${APP_DATA_DIR:-/data}:/data
+    networks:
+      - default
+
+networks:
+  default:
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.99.99.0/24
+  umbrel_main_network:
+    external: true
