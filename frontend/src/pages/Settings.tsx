@@ -5,6 +5,8 @@ import Card from '../components/Card'
 import { settings as settingsApi, wallet as walletApi, stores as storesApi, node as nodeApi, getApiBase } from '../lib/api'
 import { Store } from '../lib/types'
 import { useLock } from '../context/LockContext'
+import { useTheme, THEMES, Theme } from '../context/ThemeContext'
+import { Palette, Check } from 'lucide-react'
 // BrowserOpenURL — use Wails runtime if available, otherwise window.open
 const BrowserOpenURL = (url: string) => {
   if ((window as any).runtime?.BrowserOpenURL) {
@@ -16,7 +18,35 @@ const BrowserOpenURL = (url: string) => {
 
 const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'AUD', 'CAD', 'CHF', 'SEK', 'NZD']
 
+// Preview swatches for the Appearance theme selector (mirror src/index.css palettes)
+const THEME_SWATCH: Record<string, { bg: string; chip: string; bar: string; bar2: string }> = {
+  glass: {
+    bg: 'radial-gradient(70px 50px at 12% 8%, rgba(255,102,0,.7), transparent 70%), radial-gradient(70px 50px at 92% 18%, rgba(122,59,255,.6), transparent 70%), radial-gradient(80px 60px at 45% 115%, rgba(255,45,120,.6), transparent 70%), #0a0a0f',
+    chip: 'linear-gradient(135deg, #ff6600, #ff8a3d)',
+    bar: 'rgba(255,255,255,.6)', bar2: 'rgba(255,255,255,.25)',
+  },
+  classic: {
+    bg: '#1f2937', chip: '#ff6600',
+    bar: 'rgba(255,255,255,.55)', bar2: 'rgba(255,255,255,.22)',
+  },
+  carbon: {
+    bg: 'radial-gradient(120px 80px at 50% 0%, rgba(255,122,24,.16), transparent), #171719',
+    chip: 'linear-gradient(135deg, #ff7a18, #ffa64d)',
+    bar: 'rgba(255,255,255,.5)', bar2: 'rgba(255,255,255,.2)',
+  },
+  ocean: {
+    bg: 'radial-gradient(120px 80px at 20% 0%, rgba(34,211,184,.22), transparent), #11192b',
+    chip: 'linear-gradient(135deg, #22d3b8, #38bdf8)',
+    bar: 'rgba(180,210,255,.55)', bar2: 'rgba(120,160,230,.3)',
+  },
+  fintech: {
+    bg: '#f4f5f7', chip: 'linear-gradient(135deg, #ff7a18, #ff6600)',
+    bar: 'rgba(20,24,40,.4)', bar2: 'rgba(20,24,40,.16)',
+  },
+}
+
 export default function Settings() {
+  const { theme, setTheme } = useTheme()
   const [formData, setFormData] = useState({
     business_name: '',
     fiat_currency: 'USD',
@@ -270,6 +300,59 @@ export default function Settings() {
         <p className="text-gray-400">Manage your business configuration</p>
       </div>
 
+      {/* Appearance / Theme */}
+      <Card>
+        <h2 className="text-lg font-bold mb-2 flex items-center gap-2">
+          <Palette size={20} />
+          Appearance
+        </h2>
+        <p className="text-sm text-gray-400 mb-5">
+          Choose a theme. Changes apply instantly and are remembered on this device.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {THEMES.map((t) => {
+            const selected = theme === t.id
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTheme(t.id as Theme)}
+                className={`relative text-left rounded-xl p-3 border-2 transition ${
+                  selected
+                    ? 'border-monero-600 ring-2 ring-monero-600/40'
+                    : 'border-gray-700 hover:border-gray-500'
+                }`}
+              >
+                {selected && (
+                  <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-monero-600 text-white flex items-center justify-center">
+                    <Check size={12} strokeWidth={3} />
+                  </span>
+                )}
+                <div
+                  className="h-14 rounded-lg mb-2.5 relative overflow-hidden border border-gray-700"
+                  style={{ background: THEME_SWATCH[t.id].bg }}
+                >
+                  <span
+                    className="absolute left-2 right-2 top-3 h-1.5 rounded"
+                    style={{ background: THEME_SWATCH[t.id].bar }}
+                  />
+                  <span
+                    className="absolute left-2 top-6 h-1.5 w-1/2 rounded"
+                    style={{ background: THEME_SWATCH[t.id].bar2 }}
+                  />
+                  <span
+                    className="absolute right-2 bottom-2 w-6 h-6 rounded-md"
+                    style={{ background: THEME_SWATCH[t.id].chip }}
+                  />
+                </div>
+                <p className="text-sm font-semibold">{t.name}</p>
+                <p className="text-[11px] text-gray-500 leading-tight mt-0.5">{t.description}</p>
+              </button>
+            )
+          })}
+        </div>
+      </Card>
+
       {/* Business Settings */}
       <Card>
         <h2 className="text-lg font-bold mb-6">Business Information</h2>
@@ -310,7 +393,7 @@ export default function Settings() {
                     onChange={(e) => setFormData({ ...formData, show_fiat_price: e.target.checked ? 'true' : 'false' })}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-monero-600 peer-checked:after:bg-white" />
+                  <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-monero-600 peer-checked:after:bg-[#fff]" />
                 </div>
                 <span className="text-sm text-gray-300">Show fiat prices</span>
               </label>
@@ -322,7 +405,7 @@ export default function Settings() {
                     onChange={(e) => setFormData({ ...formData, show_prices_in_xmr: e.target.checked ? 'true' : 'false' })}
                     className="sr-only peer"
                   />
-                  <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-monero-600 peer-checked:after:bg-white" />
+                  <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-monero-600 peer-checked:after:bg-[#fff]" />
                 </div>
                 <span className="text-sm text-gray-300">Show XMR prices</span>
               </label>
@@ -1522,7 +1605,7 @@ export default function Settings() {
         <p className="text-sm text-gray-400 mb-4">
           Monero SuperPay is free and open source. If you find it useful, consider supporting ongoing development with a Monero donation.
         </p>
-        <div className="flex flex-col items-center gap-4 p-4 bg-white rounded-lg">
+        <div className="flex flex-col items-center gap-4 p-4 bg-[#ffffff] rounded-lg">
           <img
             src="/donate-qr.png"
             alt="Donation QR Code"

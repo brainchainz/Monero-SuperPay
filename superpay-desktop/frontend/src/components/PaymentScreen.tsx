@@ -82,7 +82,7 @@ export default function PaymentScreen({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left: QR + copyable fields */}
           <div>
-            <div className="relative bg-white p-6 rounded-lg mb-4 flex justify-center">
+            <div className="relative bg-[#ffffff] p-6 rounded-lg mb-4 flex justify-center">
               {paymentUri ? (
                 <QRCode value={paymentUri} size={260} level="H" />
               ) : (

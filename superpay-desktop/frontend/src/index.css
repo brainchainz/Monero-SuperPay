@@ -1,6 +1,181 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ============================================================
+   THEME TOKENS
+   Every color used by the app resolves through these CSS
+   variables (wired into tailwind.config.js), so the in-app
+   theme selector re-skins all components by swapping the
+   data-theme attribute on <html>. Values are RGB triplets.
+   ============================================================ */
+:root,
+[data-theme='classic'] {
+  --c-white: 255 255 255;
+  --c-gray-200: 229 231 235;
+  --c-gray-300: 209 213 219;
+  --c-gray-400: 156 163 175;
+  --c-gray-500: 107 114 128;
+  --c-gray-600: 75 85 99;
+  --c-gray-700: 55 65 81;
+  --c-gray-750: 44 52 66;
+  --c-gray-800: 31 41 55;
+  --c-gray-900: 17 24 39;
+
+  --c-mon-300: 253 186 116;
+  --c-mon-400: 251 146 60;
+  --c-mon-500: 249 115 22;
+  --c-mon-600: 255 102 0;
+  --c-mon-700: 234 88 12;
+  --c-mon-900: 154 54 10;
+
+  --sp-font-ui: system-ui, sans-serif;
+  --sp-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* glass-only decoration tokens (no-op for non-glass themes) */
+  --sp-accent-glow: rgba(255, 102, 0, 0.28);
+  --sp-card-bg: rgb(var(--c-gray-800));
+  --sp-card-border: rgb(var(--c-gray-700));
+  --sp-card-blur: 0px;
+  --sp-card-sat: 1;
+  --sp-card-sheen: none;
+  --sp-side-bg: rgb(var(--c-gray-800));
+  --sp-ambient: rgb(var(--c-gray-900));
+  --sp-ambient-dots: 0;
+  --sp-blobs: 0;
+}
+
+/* Glass = "Crystal Glass": a colorful animated blob mesh glowing through
+   translucent frosted surfaces. Cards are a 6% white film over the mesh,
+   so the orange/purple/pink ambient bleeds through the backdrop blur. */
+[data-theme='glass'] {
+  --c-white: 244 242 255;    /* soft bright text #f4f2ff */
+  --c-gray-200: 230 228 242;
+  --c-gray-300: 200 196 222;
+  --c-gray-400: 169 164 196; /* dim #a9a4c4 */
+  --c-gray-500: 111 106 140; /* faint #6f6a8c */
+  --c-gray-600: 60 56 84;    /* hover / subtle surface */
+  --c-gray-700: 46 42 70;    /* solid border fallback */
+  --c-gray-750: 33 28 52;    /* surface-2 */
+  --c-gray-800: 26 22 42;    /* input surface #1a162a */
+  --c-gray-900: 10 10 15;    /* base bg #0a0a0f */
+
+  --c-mon-300: 255 178 120;
+  --c-mon-400: 255 138 61;   /* #ff8a3d */
+  --c-mon-500: 255 120 40;
+  --c-mon-600: 255 102 0;    /* #f60 */
+  --c-mon-700: 230 90 0;
+  --c-mon-900: 178 64 0;
+
+  --sp-font-ui: 'Inter', 'Instrument Sans', system-ui, sans-serif;
+  --sp-accent-glow: rgba(255, 102, 0, 0.3);
+  --sp-card-bg: rgba(255, 255, 255, 0.06);
+  --sp-card-border: rgba(255, 255, 255, 0.12);
+  --sp-card-blur: 30px;
+  --sp-card-sat: 1.4;
+  --sp-card-sheen: linear-gradient(140deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 42%);
+  --sp-side-bg: rgba(255, 255, 255, 0.04);
+  --sp-ambient: #0a0a0f;
+  --sp-ambient-dots: 0;
+  --sp-blobs: 1;
+}
+
+[data-theme='carbon'] {
+  --c-white: 255 255 255;
+  --c-gray-200: 232 232 236;
+  --c-gray-300: 205 205 212;
+  --c-gray-400: 160 160 168;
+  --c-gray-500: 110 110 118;
+  --c-gray-600: 42 42 46;
+  --c-gray-700: 38 38 42;
+  --c-gray-750: 29 29 32;
+  --c-gray-800: 23 23 25;
+  --c-gray-900: 10 10 11;
+
+  --c-mon-300: 255 184 119;
+  --c-mon-400: 255 166 77;
+  --c-mon-500: 255 138 40;
+  --c-mon-600: 255 122 24;
+  --c-mon-700: 230 104 16;
+  --c-mon-900: 178 80 12;
+
+  --sp-font-ui: 'Instrument Sans', system-ui, sans-serif;
+  --sp-accent-glow: rgba(255, 122, 24, 0.3);
+  --sp-card-bg: rgba(23, 23, 25, 0.6);
+  --sp-card-blur: 14px;
+  --sp-card-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0) 130px);
+  --sp-side-bg: linear-gradient(180deg, #0d0d0f, #0a0a0b);
+  --sp-ambient: radial-gradient(1000px 600px at 50% -10%, rgba(255, 122, 24, 0.06), transparent 60%), #0a0a0b;
+  --sp-ambient-dots: 1;
+}
+
+[data-theme='ocean'] {
+  --c-white: 255 255 255;
+  --c-gray-200: 222 232 245;
+  --c-gray-300: 190 205 230;
+  --c-gray-400: 143 163 196;
+  --c-gray-500: 90 108 140;
+  --c-gray-600: 45 60 92;
+  --c-gray-700: 32 44 70;
+  --c-gray-750: 22 32 54;
+  --c-gray-800: 17 25 43;
+  --c-gray-900: 9 14 26;
+
+  --c-mon-300: 150 240 225;
+  --c-mon-400: 90 224 208;
+  --c-mon-500: 56 224 200;
+  --c-mon-600: 34 211 184;
+  --c-mon-700: 20 180 156;
+  --c-mon-900: 15 120 105;
+
+  --sp-font-ui: 'Instrument Sans', system-ui, sans-serif;
+  --sp-accent-glow: rgba(34, 211, 184, 0.3);
+  --sp-card-bg: rgba(17, 25, 43, 0.55);
+  --sp-card-blur: 16px;
+  --sp-card-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0) 130px);
+  --sp-side-bg: linear-gradient(180deg, #0b1120, #090e1a);
+  --sp-ambient:
+    radial-gradient(900px 480px at 16% -6%, rgba(34, 211, 184, 0.1), transparent 60%),
+    radial-gradient(700px 420px at 90% 8%, rgba(56, 189, 248, 0.07), transparent 60%),
+    radial-gradient(1200px 800px at 50% 120%, rgba(0, 0, 0, 0.55), transparent 70%),
+    #090e1a;
+  --sp-ambient-dots: 1;
+}
+
+/* Fintech — soft light theme (ported from the Monero Merchant mockup).
+   This is the one light theme, so the gray scale is inverted: high shades
+   become light surfaces, low shades become dark ink. `white` is remapped to
+   a dark foreground so text-white stays readable; QR codes use literal white. */
+[data-theme='fintech'] {
+  --c-white: 22 24 29;       /* foreground ink (#16181d) */
+  --c-gray-200: 47 51 59;    /* darkest secondary text */
+  --c-gray-300: 43 47 55;    /* strong body text */
+  --c-gray-400: 91 96 107;   /* dim text (#5b606b) */
+  --c-gray-500: 154 160 172; /* faint text (#9aa0ac) */
+  --c-gray-600: 185 191 201; /* strong border / faint label */
+  --c-gray-700: 231 233 238; /* default border (#e7e9ee) */
+  --c-gray-750: 250 251 252; /* subtle surface (#fafbfc) */
+  --c-gray-800: 255 255 255; /* card / input surface */
+  --c-gray-900: 244 245 247; /* app background (#f4f5f7) */
+
+  --c-mon-300: 255 138 51;
+  --c-mon-400: 226 86 0;     /* accent text, readable on white (#e25600) */
+  --c-mon-500: 240 100 10;
+  --c-mon-600: 255 102 0;    /* primary accent (#ff6600) */
+  --c-mon-700: 226 86 0;     /* hover (darker) */
+  --c-mon-900: 154 54 10;
+
+  --sp-font-ui: 'Inter', system-ui, sans-serif;
+  --sp-accent-glow: rgba(255, 102, 0, 0.18);
+  --sp-card-bg: rgb(var(--c-gray-800));
+  --sp-card-blur: 0px;
+  --sp-card-sheen: none;
+  --sp-side-bg: rgb(var(--c-gray-800));
+  --sp-ambient: rgb(var(--c-gray-900));
+  --sp-ambient-dots: 0;
+}
 
 * {
   @apply border-gray-700;
@@ -8,6 +183,7 @@
 
 body {
   @apply bg-gray-900 text-white;
+  font-family: var(--sp-font-ui);
 }
 
 input, textarea, select {
@@ -16,6 +192,82 @@ input, textarea, select {
 
 button:disabled {
   @apply opacity-50 cursor-not-allowed;
+}
+
+/* ============================================================
+   GLASS / THEME DECORATION
+   Hook classes added to a few structural elements so themed
+   builds can layer in ambient depth, frosted surfaces and the
+   accent sheen without rewriting every component.
+   ============================================================ */
+#sp-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--sp-ambient);
+  transition: background 0.4s ease;
+}
+#sp-ambient::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: calc(var(--sp-ambient-dots) * 0.5);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 24px 24px;
+  -webkit-mask: radial-gradient(1000px 600px at 30% 0%, #000, transparent 75%);
+  mask: radial-gradient(1000px 600px at 30% 0%, #000, transparent 75%);
+}
+
+/* Crystal-glass ambient mesh: three drifting colored blobs + film grain.
+   Hidden unless the active theme opts in via --sp-blobs (currently Glass). */
+.sp-blob,
+.sp-grain {
+  display: none;
+}
+[data-theme='glass'] .sp-blob {
+  display: block;
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.55;
+  animation: sp-drift 22s ease-in-out infinite;
+}
+.sp-blob-1 { width: 46vw; height: 46vw; background: #ff6600; left: -8vw; top: -10vw; }
+.sp-blob-2 { width: 40vw; height: 40vw; background: #7a3bff; right: -6vw; top: 8vh; animation-delay: -6s; }
+.sp-blob-3 { width: 38vw; height: 38vw; background: #ff2d78; left: 25vw; bottom: -14vw; animation-delay: -12s; }
+@keyframes sp-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(6vw, 4vh) scale(1.12); }
+  66% { transform: translate(-4vw, -3vh) scale(0.92); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='glass'] .sp-blob { animation: none; }
+}
+[data-theme='glass'] .sp-grain {
+  display: block;
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Card hook — Card.tsx renders bg-gray-800; we layer the themed
+   surface, blur, sheen and border on top via the sp-card class. */
+.sp-card {
+  position: relative;
+  background: var(--sp-card-sheen), var(--sp-card-bg);
+  border-color: var(--sp-card-border);
+  backdrop-filter: blur(var(--sp-card-blur)) saturate(var(--sp-card-sat));
+  -webkit-backdrop-filter: blur(var(--sp-card-blur)) saturate(var(--sp-card-sat));
+}
+
+.sp-sidebar {
+  background: var(--sp-side-bg);
+  border-color: var(--sp-card-border);
+  backdrop-filter: blur(var(--sp-card-blur)) saturate(var(--sp-card-sat));
+  -webkit-backdrop-filter: blur(var(--sp-card-blur)) saturate(var(--sp-card-sat));
 }
 
 .scrollbar-hide::-webkit-scrollbar {

@@ -357,11 +357,11 @@ export default function Devices() {
           </p>
 
           {/* QR Code or Success Animation */}
-          <div className="bg-white p-8 rounded-lg flex justify-center items-center min-h-[364px]">
+          <div className="bg-[#ffffff] p-8 rounded-lg flex justify-center items-center min-h-[364px]">
             {isPaired ? (
               <div className="text-center animate-in zoom-in duration-300">
                 <CheckCircle2 size={120} className="text-green-500 mx-auto mb-4" />
-                <p className="text-gray-900 text-xl font-bold">Successfully Paired!</p>
+                <p className="text-[#111827] text-xl font-bold">Successfully Paired!</p>
                 <p className="text-gray-500">This modal will close automatically...</p>
               </div>
             ) : (

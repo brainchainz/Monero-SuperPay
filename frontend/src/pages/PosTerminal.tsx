@@ -632,7 +632,7 @@ export default function PosTerminal() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Left: QR + copyable fields */}
             <div>
-              <div className="bg-white p-5 rounded-xl mb-3 flex justify-center">
+              <div className="bg-[#ffffff] p-5 rounded-xl mb-3 flex justify-center">
                 {createdOrder.payment_uri ? (
                   <QRCode value={createdOrder.payment_uri} size={220} level="H" />
                 ) : (

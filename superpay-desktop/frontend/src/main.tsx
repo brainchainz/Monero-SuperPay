@@ -14,7 +14,11 @@ import OrderMonitor from './pages/OrderMonitor'
 import Analytics from './pages/Analytics'
 import SplashScreen from './components/SplashScreen'
 import { markApiReady, cacheApiBase } from './lib/api'
+import { ThemeProvider, applyTheme, getStoredTheme } from './context/ThemeContext'
 import './index.css'
+
+// Apply the saved theme synchronously, before first paint, to avoid a flash.
+applyTheme(getStoredTheme())
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -100,9 +104,11 @@ async function initApp() {
   // Now render the app
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <Root />
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <Root />
+        </QueryClientProvider>
+      </ThemeProvider>
     </React.StrictMode>
   )
 }

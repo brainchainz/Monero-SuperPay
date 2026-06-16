@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="glass">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Monero SuperPay — glass refresh</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ============================================================
+   THEME TOKENS — switch via <html data-theme="...">
+   ============================================================ */
+:root,[data-theme="glass"]{
+  --bg:#0a0a0f;--bg2:#15101d;
+  --surface:rgba(255,255,255,.06);--surface-2:rgba(255,255,255,.05);--surface-raised:rgba(255,255,255,.10);--surface-glass:rgba(255,255,255,.07);
+  --line:rgba(255,255,255,.12);--line-soft:rgba(255,255,255,.07);
+  --ink:#f4f2ff;--ink-dim:#a9a4c4;--ink-faint:#6f6a8c;
+  --accent:#ff6600;--accent-2:#ff8a3d;--accent-glow:rgba(255,102,0,.3);
+  --teal:#34e0a1;--teal-glow:rgba(52,224,161,.25);--warn:#ffc23d;--danger:#ff5d5d;--blue:#7aa2f7;
+  --grad-accent:linear-gradient(135deg,var(--accent),var(--accent-2));
+  --blur:30px;
+  --elev:0 1px 0 rgba(255,255,255,.08) inset,0 20px 60px -15px rgba(0,0,0,.7);
+  --elev-lg:0 1px 0 rgba(255,255,255,.1) inset,0 30px 70px -20px rgba(0,0,0,.8);
+  --ambient:#0a0a0f;
+}
+[data-theme="classic"]{
+  --bg:#111827;--bg2:#0f1623;
+  --surface:#1f2937;--surface-2:#1a2332;--surface-raised:#243044;--surface-glass:#1f2937;
+  --line:#374151;--line-soft:#2b3645;
+  --ink:#f9fafb;--ink-dim:#9ca3af;--ink-faint:#6b7280;
+  --accent:#ff6600;--accent-2:#fb923c;--accent-glow:rgba(255,102,0,.3);
+  --teal:#34d399;--teal-glow:rgba(52,211,153,.2);--warn:#fbbf24;--danger:#f87171;--blue:#60a5fa;
+  --grad-accent:linear-gradient(135deg,#ff6600,#fb923c);
+  --blur:0px;
+  --elev:0 4px 12px -4px rgba(0,0,0,.5);--elev-lg:0 12px 30px -8px rgba(0,0,0,.6);
+  --ambient:var(--bg);
+}
+[data-theme="carbon"]{
+  --bg:#0a0a0b;--bg2:#0d0d0f;
+  --surface:#171719;--surface-2:#1d1d20;--surface-raised:#26262b;--surface-glass:rgba(23,23,25,.6);
+  --line:rgba(255,255,255,.06);--line-soft:rgba(255,255,255,.035);
+  --ink:#fafafa;--ink-dim:#a0a0a8;--ink-faint:#6e6e76;
+  --accent:#ff7a18;--accent-2:#ffa64d;--accent-glow:rgba(255,122,24,.3);
+  --teal:#5eead4;--teal-glow:rgba(94,234,212,.2);--warn:#fbbf24;--danger:#f87171;--blue:#93c5fd;
+  --grad-accent:linear-gradient(135deg,#ff7a18,#ffa64d);
+  --blur:14px;
+  --elev:0 1px 0 rgba(255,255,255,.04) inset,0 10px 26px -16px rgba(0,0,0,.8);
+  --elev-lg:0 1px 0 rgba(255,255,255,.05) inset,0 26px 54px -22px rgba(0,0,0,.85);
+  --ambient:radial-gradient(1000px 600px at 50% -10%,rgba(255,122,24,.06),transparent 60%),var(--bg);
+}
+[data-theme="ocean"]{
+  --bg:#090e1a;--bg2:#0b1120;
+  --surface:#11192b;--surface-2:#162036;--surface-raised:#1d2a44;--surface-glass:rgba(17,25,43,.55);
+  --line:rgba(120,160,230,.14);--line-soft:rgba(120,160,230,.08);
+  --ink:#eef3fb;--ink-dim:#8fa3c4;--ink-faint:#5a6c8c;
+  --accent:#22d3b8;--accent-2:#5ee0d0;--accent-glow:rgba(34,211,184,.3);
+  --teal:#38e0c8;--teal-glow:rgba(56,224,200,.25);--warn:#fbbf24;--danger:#fb7185;--blue:#60a5fa;
+  --grad-accent:linear-gradient(135deg,#22d3b8,#38bdf8);
+  --blur:18px;
+  --elev:0 1px 0 rgba(255,255,255,.05) inset,0 12px 30px -16px rgba(0,0,0,.7);
+  --elev-lg:0 1px 0 rgba(255,255,255,.06) inset,0 30px 60px -24px rgba(0,0,0,.8);
+  --ambient:radial-gradient(900px 480px at 16% -6%,rgba(34,211,184,.10),transparent 60%),
+            radial-gradient(700px 420px at 90% 8%,rgba(56,189,248,.07),transparent 60%),
+            radial-gradient(1200px 800px at 50% 120%,rgba(0,0,0,.55),transparent 70%),var(--bg);
+}
+
+[data-theme="fintech"]{
+  --bg:#f4f5f7;--bg2:#eef0f3;
+  --surface:#ffffff;--surface-2:#fafbfc;--surface-raised:#f1f3f6;--surface-glass:rgba(255,255,255,.85);
+  --line:#e7e9ee;--line-soft:#eef0f3;
+  --ink:#16181d;--ink-dim:#5b606b;--ink-faint:#9aa0ac;
+  --accent:#ff6600;--accent-2:#ff8a33;--accent-glow:rgba(255,102,0,.16);
+  --teal:#0c9f6e;--teal-glow:rgba(12,159,110,.16);--warn:#d97706;--danger:#dc2626;--blue:#3b5bdb;
+  --grad-accent:linear-gradient(135deg,#ff6600,#ff8a33);
+  --blur:0px;
+  --elev:0 1px 2px rgba(20,24,40,.06),0 8px 24px -12px rgba(20,24,40,.18);
+  --elev-lg:0 4px 10px rgba(20,24,40,.08),0 24px 48px -16px rgba(20,24,40,.22);
+  --ambient:#f4f5f7;
+}
+
+html,body{height:100%;font-family:'Instrument Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);overflow:hidden;-webkit-font-smoothing:antialiased}
+[data-theme="fintech"] body{font-family:'Inter','Instrument Sans',system-ui,sans-serif}
+:root{--font-ui:'Instrument Sans',system-ui,sans-serif;--font-mono:'IBM Plex Mono',monospace}
+
+#ambient{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:var(--ambient);transition:background .4s}
+#ambient::after{content:"";position:absolute;inset:0;opacity:.5;
+  background-image:radial-gradient(rgba(255,255,255,.025) 1px,transparent 1px);background-size:24px 24px;
+  -webkit-mask:radial-gradient(1000px 600px at 30% 0%,#000,transparent 75%);mask:radial-gradient(1000px 600px at 30% 0%,#000,transparent 75%)}
+[data-theme="classic"] #ambient::after,[data-theme="glass"] #ambient::after,[data-theme="fintech"] #ambient::after{display:none}
+/* crystal-glass animated colored blob mesh + grain (glass theme only) */
+.blob,.grain{display:none}
+[data-theme="glass"] .blob{display:block;position:absolute;border-radius:50%;filter:blur(70px);opacity:.55;animation:bdrift 22s ease-in-out infinite}
+.bl1{width:46vw;height:46vw;background:#ff6600;left:-8vw;top:-10vw}
+.bl2{width:40vw;height:40vw;background:#7a3bff;right:-6vw;top:8vh;animation-delay:-6s}
+.bl3{width:38vw;height:38vw;background:#ff2d78;left:25vw;bottom:-14vw;animation-delay:-12s}
+@keyframes bdrift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(6vw,4vh) scale(1.12)}66%{transform:translate(-4vw,-3vh) scale(.92)}}
+@media(prefers-reduced-motion:reduce){[data-theme="glass"] .blob{animation:none}}
+[data-theme="glass"] .grain{display:block;position:absolute;inset:0;opacity:.04;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+.top-nav{position:fixed;top:0;left:0;right:0;z-index:50;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;
+  background:linear-gradient(180deg,rgba(7,7,9,.92),rgba(7,7,9,.5) 70%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line-soft)}
+[data-theme="classic"] .top-nav{background:var(--surface)}
+.top-nav .brand{display:flex;align-items:center;gap:11px}
+.top-nav .brand-mark{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--grad-accent);font-weight:800;color:#0a0a0a;font-size:17px;box-shadow:0 0 0 1px rgba(255,255,255,.1) inset,0 6px 18px -5px var(--accent-glow)}
+.top-nav .brand-name{font-size:15px;font-weight:600;letter-spacing:-.3px}
+.top-nav .brand-name span{background:var(--grad-accent);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.top-nav .live-pill{display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);font-family:var(--font-mono);font-size:12px;box-shadow:var(--elev)}
+.top-nav .live-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px var(--teal-glow),0 0 10px var(--teal-glow);animation:livePulse 2.4s infinite}
+@keyframes livePulse{0%,100%{opacity:1}50%{opacity:.35}}
+.top-nav .live-pill .val{color:var(--ink-dim)}
+.top-nav .live-pill .val strong{color:var(--ink);margin-left:4px}
+.top-nav .nav-actions{display:flex;align-items:center;gap:12px}
+.top-nav .store-pill{display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:10px;background:var(--surface-raised);border:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--ink-dim);cursor:pointer}
+.top-nav .store-pill .sw{width:8px;height:8px;border-radius:2px;background:var(--grad-accent)}
+
+.app{display:flex;min-height:100vh}
+.sidebar{position:fixed;left:0;top:64px;bottom:0;width:230px;background:linear-gradient(180deg,var(--bg2),var(--bg));border-right:1px solid var(--line-soft);padding:18px 14px;z-index:40;display:flex;flex-direction:column}
+[data-theme="classic"] .sidebar{background:var(--surface)}
+[data-theme="glass"] .sidebar{background:rgba(255,255,255,.04);backdrop-filter:blur(20px)}
+[data-theme="glass"] .top-nav{background:rgba(10,10,15,.5);backdrop-filter:blur(20px)}
+.sidebar .nav{flex:1;display:flex;flex-direction:column;gap:3px}
+.sidebar .nav-eyebrow{font-size:10px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-faint);padding:6px 12px 8px}
+.sidebar .nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:11px;color:var(--ink-dim);cursor:pointer;transition:all .18s;font-size:13.5px;font-weight:500;position:relative}
+.sidebar .nav-item:hover{background:rgba(255,255,255,.04);color:var(--ink)}
+.sidebar .nav-item.active{color:#fff;background:linear-gradient(135deg,var(--accent-glow),transparent);box-shadow:0 0 0 1px var(--accent-glow) inset}
+.sidebar .nav-item.active::before{content:"";position:absolute;left:-14px;top:50%;transform:translateY(-50%);width:3px;height:20px;border-radius:0 3px 3px 0;background:var(--grad-accent);box-shadow:0 0 12px var(--accent-glow)}
+.sidebar .nav-item.active svg{color:var(--accent)}
+.sidebar .nav-item svg{width:18px;height:18px;flex-shrink:0}
+.sidebar-footer{padding:14px 12px 4px;border-top:1px solid var(--line-soft);margin-top:auto;font-size:12px;color:var(--ink-faint);display:flex;flex-direction:column;gap:9px}
+.sf-row{display:flex;align-items:center;justify-content:space-between}
+.sf-row .lab{display:flex;align-items:center;gap:7px}
+.sf-row .v-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal-glow)}
+.sf-row .good{color:var(--teal);font-family:var(--font-mono);font-size:11.5px}
+
+.main{flex:1;margin-left:230px;margin-top:64px;overflow-y:auto;overflow-x:hidden;padding:30px 36px 90px;position:relative;z-index:10;max-width:1260px}
+@media(max-width:860px){.sidebar{display:none}.main{margin-left:0;padding:16px 16px 90px}}
+
+.section{display:none}.section.active{display:block;animation:rise .45s cubic-bezier(.2,.8,.2,1)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.section-title{font-size:23px;font-weight:700;letter-spacing:-.4px;margin-bottom:4px}
+.section-sub{font-size:13px;color:var(--ink-dim);margin-bottom:22px}
+
+.card{position:relative;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0) 120px),var(--surface);
+  border:1px solid var(--line);border-radius:18px;padding:22px 24px;margin-bottom:18px;box-shadow:var(--elev);backdrop-filter:blur(var(--blur))}
+[data-theme="classic"] .card{background:var(--surface)}
+.card .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px;flex-wrap:wrap}
+.card .card-title{font-size:14px;font-weight:600;display:flex;align-items:center}
+.card .card-title .dot{width:7px;height:7px;border-radius:2px;background:var(--grad-accent);display:inline-block;margin-right:9px;box-shadow:0 0 8px var(--accent-glow)}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-bottom:18px}
+.stat-card{position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0)),var(--surface);
+  border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--elev);transition:transform .2s,box-shadow .2s;backdrop-filter:blur(var(--blur))}
+[data-theme="classic"] .stat-card{background:var(--surface)}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--elev-lg)}
+.stat-card .ic{position:absolute;top:18px;right:18px;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--surface-raised);color:var(--ink-dim)}
+.stat-card .stat-label{font-size:11px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;font-weight:600}
+.stat-card .stat-value{font-family:var(--font-mono);font-size:26px;font-weight:600;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.stat-card .stat-foot{font-size:12px;color:var(--ink-faint);margin-top:7px}
+.stat-card .stat-foot .up{color:var(--teal);font-weight:600}
+.stat-card.feature{background:linear-gradient(135deg,var(--accent-glow),transparent),var(--surface)}
+.stat-card.feature::after{content:"";position:absolute;right:-40px;top:-40px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,var(--accent-glow),transparent 65%)}
+.stat-card .stat-value.xmr{background:var(--grad-accent);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.stat-card .stat-value.teal{color:var(--teal)}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:860px){.grid-2{grid-template-columns:1fr}}
+.node-row{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-radius:13px;background:var(--surface-2);border:1px solid var(--line)}
+.node-row .left{display:flex;align-items:center;gap:12px}
+.node-row .pulse{width:11px;height:11px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px var(--teal-glow),0 0 12px var(--teal-glow)}
+.node-row .nm{font-weight:600;font-size:14px}
+.node-row .sub{font-size:12px;color:var(--ink-dim);margin-top:2px}
+.node-row .synced{color:var(--teal);font-weight:600;font-size:13px}
+.dev-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dev-chip{padding:14px;border-radius:13px;background:var(--surface-2);border:1px solid var(--line)}
+.dev-chip .top{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.dev-chip .d{width:9px;height:9px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal-glow)}
+.dev-chip .d.off{background:var(--ink-faint);box-shadow:none}
+.dev-chip .dn{font-weight:600;font-size:13.5px}
+.dev-chip .ls{font-size:11.5px;color:var(--ink-faint)}
+
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{text-align:left;padding:11px 14px;font-size:10.5px;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink-faint);font-weight:600;border-bottom:1px solid var(--line)}
+.data-table td{padding:13px 14px;border-bottom:1px solid var(--line-soft)}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tbody tr{transition:background .15s;cursor:pointer}
+.data-table tbody tr:hover td{background:rgba(255,255,255,.025)}
+.data-table .mono{font-family:var(--font-mono);font-size:12.5px;color:var(--ink-dim)}
+.data-table .num{font-family:var(--font-mono);text-align:right}
+.data-table .id{font-family:var(--font-mono);color:var(--accent);font-weight:600}
+.data-table .amt{font-family:var(--font-mono);font-weight:600;color:var(--teal)}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:11px;font-weight:600}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 7px currentColor}
+.badge.paid{background:rgba(22,216,168,.1);color:var(--teal)}
+.badge.pending{background:rgba(255,194,61,.12);color:var(--warn)}
+.badge.await{background:rgba(255,255,255,.05);color:var(--ink-faint)}
+.badge.refunded{background:rgba(122,162,247,.1);color:var(--blue)}
+
+.btn{appearance:none;border:none;padding:9px 16px;border-radius:11px;font-family:var(--font-ui);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .22s}
+.btn:hover{transform:translateY(-1px)}
+.btn-fill{background:var(--grad-accent);color:#0a0a0a;box-shadow:0 8px 22px -8px var(--accent-glow)}
+.btn-ghost{background:var(--surface-2);color:var(--ink-dim);border:1px solid var(--line)}
+.btn-ghost:hover{background:rgba(255,255,255,.05);color:var(--ink)}
+
+/* POS */
+.pos-wrap{display:grid;grid-template-columns:1fr 360px;gap:18px}
+@media(max-width:1040px){.pos-wrap{grid-template-columns:1fr}}
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:13px}
+.prod{position:relative;border-radius:15px;padding:16px;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0)),var(--surface);border:1px solid var(--line);cursor:pointer;transition:.18s;box-shadow:var(--elev);backdrop-filter:blur(var(--blur))}
+[data-theme="classic"] .prod{background:var(--surface)}
+.prod:hover{transform:translateY(-2px);border-color:var(--accent-glow)}
+.prod .emoji{font-size:28px;margin-bottom:12px}
+.prod .pn{font-weight:600;font-size:13.5px;margin-bottom:4px}
+.prod .pp{font-family:var(--font-mono);font-size:13px;color:var(--ink-dim)}
+.prod .px{font-family:var(--font-mono);font-size:11px;color:var(--accent);margin-top:3px}
+.cart{border-radius:18px;background:var(--surface-glass);border:1px solid var(--line);padding:20px;box-shadow:var(--elev);backdrop-filter:blur(var(--blur));display:flex;flex-direction:column;height:fit-content}
+.cart h3{font-size:14px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.cart h3 .ct{font-family:var(--font-mono);font-size:11px;color:var(--ink-faint);font-weight:500}
+.cart-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line-soft);font-size:13px}
+.cart-item .qn{color:var(--ink-dim)}
+.cart-item .qn b{color:var(--ink);font-weight:600}
+.cart-item .ci-amt{font-family:var(--font-mono);font-weight:600}
+.cart-tot{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.cart-tot .r{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-dim)}
+.cart-tot .r.big{font-size:20px;color:var(--ink);font-weight:700;align-items:baseline}
+.cart-tot .r.big .xmr{font-family:var(--font-mono);background:var(--grad-accent);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.cart-tot .r .fiat{font-family:var(--font-mono)}
+.btn-charge{margin-top:16px;width:100%;padding:14px;border-radius:13px;background:var(--grad-accent);color:#0a0a0a;border:none;font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 10px 26px -8px var(--accent-glow);transition:.2s}
+.btn-charge:hover{transform:translateY(-1px);filter:brightness(1.05)}
+
+/* Settings / appearance */
+.kv{display:grid;grid-template-columns:170px 1fr;gap:11px 16px;font-size:13px}
+.kv .k{color:var(--ink-faint)}.kv .v{color:var(--ink);font-family:var(--font-mono);font-size:12.5px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:var(--ink-dim);margin-bottom:7px;font-weight:500}
+.field input,.field select{width:100%;padding:11px 14px;border-radius:11px;background:var(--surface-raised);border:1px solid var(--line);color:var(--ink);font-family:var(--font-ui);font-size:14px}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-glow)}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+.theme-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.theme-opt{position:relative;border-radius:15px;padding:14px;border:1.5px solid var(--line);cursor:pointer;transition:.18s;overflow:hidden}
+.theme-opt:hover{border-color:var(--ink-faint)}
+.theme-opt.sel{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.theme-opt .swatch{height:62px;border-radius:11px;margin-bottom:11px;position:relative;overflow:hidden;border:1px solid var(--line-soft)}
+.theme-opt .swatch .bar{position:absolute;left:10px;right:10px;height:7px;border-radius:4px;top:12px}
+.theme-opt .swatch .bar.b2{top:26px;right:48px}
+.theme-opt .swatch .chip{position:absolute;right:10px;bottom:10px;width:26px;height:26px;border-radius:8px}
+.theme-opt .tn{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px}
+.theme-opt .td{font-size:11.5px;color:var(--ink-faint);margin-top:3px}
+.theme-opt .check{position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:50%;background:var(--grad-accent);color:#0a0a0a;font-size:12px;font-weight:800;display:none;align-items:center;justify-content:center}
+.theme-opt.sel .check{display:flex}
+/* swatch previews */
+.sw-glass{background:radial-gradient(70px 50px at 12% 8%,rgba(255,102,0,.7),transparent 70%),radial-gradient(70px 50px at 92% 18%,rgba(122,59,255,.6),transparent 70%),radial-gradient(80px 60px at 45% 115%,rgba(255,45,120,.6),transparent 70%),#0a0a0f}
+.sw-glass .bar{background:rgba(255,255,255,.5)}.sw-glass .bar.b2{background:rgba(255,255,255,.2)}.sw-glass .chip{background:linear-gradient(135deg,#ff6a2b,#ff9b45)}
+.sw-classic{background:#1f2937}.sw-classic .bar{background:rgba(255,255,255,.55)}.sw-classic .bar.b2{background:rgba(255,255,255,.22)}.sw-classic .chip{background:#ff6600}
+.sw-carbon{background:radial-gradient(120px 80px at 50% 0%,rgba(255,122,24,.16),transparent),#171719}.sw-carbon .bar{background:rgba(255,255,255,.5)}.sw-carbon .bar.b2{background:rgba(255,255,255,.2)}.sw-carbon .chip{background:linear-gradient(135deg,#ff7a18,#ffa64d)}
+.sw-ocean{background:radial-gradient(120px 80px at 20% 0%,rgba(34,211,184,.22),transparent),#11192b}.sw-ocean .bar{background:rgba(180,210,255,.55)}.sw-ocean .bar.b2{background:rgba(120,160,230,.3)}.sw-ocean .chip{background:linear-gradient(135deg,#22d3b8,#38bdf8)}
+
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line-soft)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-row .tl{font-size:13.5px}.toggle-row .ts{font-size:11.5px;color:var(--ink-faint);margin-top:2px}
+.sw-toggle{width:42px;height:24px;border-radius:999px;background:var(--surface-raised);border:1px solid var(--line);position:relative;cursor:pointer;flex-shrink:0;transition:.2s}
+.sw-toggle::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--ink-dim);transition:.2s}
+.sw-toggle.on{background:var(--grad-accent)}.sw-toggle.on::after{left:20px;background:#fff}
+
+/* theme switcher demo */
+.demo{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:999;display:flex;gap:6px;align-items:center;background:var(--surface-raised);border:1px solid var(--line);padding:6px;border-radius:999px;box-shadow:var(--elev-lg);backdrop-filter:blur(12px)}
+.demo .lbl{font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink-faint);padding:0 8px}
+.demo button{border:0;background:transparent;color:var(--ink-dim);font:inherit;font-size:12px;font-weight:600;padding:7px 13px;border-radius:999px;cursor:pointer}
+.demo button.on{background:var(--grad-accent);color:#0a0a0a}
+
+/* ---- Fintech (light) structural overrides: flat surfaces, dark hovers ---- */
+[data-theme="fintech"] #ambient::after{display:none}
+[data-theme="fintech"] .top-nav{background:var(--surface)}
+[data-theme="fintech"] .sidebar{background:var(--surface)}
+[data-theme="fintech"] .card,[data-theme="fintech"] .stat-card,[data-theme="fintech"] .prod{background:var(--surface)}
+[data-theme="fintech"] .top-nav .brand-mark,[data-theme="fintech"] .btn-fill,[data-theme="fintech"] .btn-charge{color:#fff}
+[data-theme="fintech"] .sidebar .nav-item:hover{background:rgba(20,24,40,.05)}
+[data-theme="fintech"] .sidebar .nav-item.active{color:var(--ink)}
+[data-theme="fintech"] .btn-ghost:hover{background:var(--surface-2)}
+[data-theme="fintech"] .data-table tbody tr:hover td{background:rgba(20,24,40,.025)}
+[data-theme="fintech"] .prod:hover{border-color:var(--accent)}
+.sw-fintech{background:#f4f5f7}
+.sw-fintech .bar{background:rgba(20,24,40,.4)}.sw-fintech .bar.b2{background:rgba(20,24,40,.16)}
+.sw-fintech .chip{background:linear-gradient(135deg,#ff8a33,#ff6600)}
+</style>
+</head>
+<body>
+<div id="ambient"><span class="blob bl1"></span><span class="blob bl2"></span><span class="blob bl3"></span><span class="grain"></span></div>
+
+<nav class="top-nav">
+  <div class="brand"><div class="brand-mark">S</div><div class="brand-name">Monero <span>SuperPay</span></div></div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <div class="store-pill"><span class="sw"></span>Downtown Cafe ▾</div>
+    <div class="live-pill"><span class="dot"></span><span class="val">Node synced<strong>3,694,995</strong></span></div>
+  </div>
+</nav>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="nav">
+      <div class="nav-eyebrow">Overview</div>
+      <div class="nav-item active" data-nav="dashboard"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"/></svg>Dashboard</div>
+      <div class="nav-item" data-nav="orders"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>Orders</div>
+      <div class="nav-item" data-nav="analytics"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>Analytics</div>
+      <div class="nav-eyebrow">Manage</div>
+      <div class="nav-item" data-nav="products"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>Products</div>
+      <div class="nav-item" data-nav="devices"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>Devices</div>
+      <div class="nav-item" data-nav="pos"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>Point of Sale</div>
+      <div class="nav-eyebrow">System</div>
+      <div class="nav-item" data-nav="settings"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>Settings</div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sf-row"><span class="lab"><span class="v-dot"></span>Node</span><span class="good">synced</span></div>
+      <div class="sf-row"><span class="lab"><span class="v-dot"></span>Wallet</span><span class="good">view-only</span></div>
+      <div class="sf-row" style="color:var(--ink-faint)"><span>v2.4.0</span><span>Umbrel</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- DASHBOARD -->
+    <div class="section active" id="sec-dashboard">
+      <div class="section-title">Dashboard</div>
+      <div class="section-sub">Welcome back to Monero SuperPay — Downtown Cafe</div>
+      <div class="stats-grid">
+        <div class="stat-card feature"><div class="ic"><svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4"/></svg></div><div class="stat-label">Today's Orders</div><div class="stat-value">47</div><div class="stat-foot"><span class="up">↑ 12</span> vs yesterday</div></div>
+        <div class="stat-card"><div class="ic"><svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 12v-2"/></svg></div><div class="stat-label">Today's Revenue</div><div class="stat-value">$1,284</div><div class="stat-foot">USD · incl. tax</div></div>
+        <div class="stat-card"><div class="stat-label">XMR Revenue</div><div class="stat-value xmr">8.8231</div><div class="stat-foot">≈ $1,284.00</div></div>
+        <div class="stat-card"><div class="stat-label">Active Devices</div><div class="stat-value teal">4 / 5</div><div class="stat-foot">1 idle</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><h3 class="card-title"><span class="dot"></span>Monero Node Status</h3></div>
+          <div class="node-row"><div class="left"><span class="pulse"></span><div><div class="nm">Connected</div><div class="sub">monero_monerod_1 : 18081 · mainnet</div></div></div><div style="text-align:right"><div class="synced">Synced</div><div class="sub">height 3,694,995</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3 class="card-title"><span class="dot"></span>Connected Devices</h3></div>
+          <div class="dev-grid">
+            <div class="dev-chip"><div class="top"><span class="d"></span><span class="dn">Front Counter</span></div><div class="ls">Last seen: just now</div></div>
+            <div class="dev-chip"><div class="top"><span class="d"></span><span class="dn">Patio Till</span></div><div class="ls">Last seen: 1m ago</div></div>
+            <div class="dev-chip"><div class="top"><span class="d"></span><span class="dn">Web Store</span></div><div class="ls">Last seen: 3m ago</div></div>
+            <div class="dev-chip"><div class="top"><span class="d off"></span><span class="dn">Pop-up Stall</span></div><div class="ls">Last seen: 2h ago</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3 class="card-title"><span class="dot"></span>Recent Orders</h3><button class="btn btn-ghost" data-goto="orders">View All</button></div>
+        <table class="data-table"><thead><tr><th>Order</th><th>Customer</th><th class="num">Total</th><th class="num">XMR</th><th>Status</th><th>Device</th><th>Time</th></tr></thead><tbody>
+          <tr><td class="id">#1047</td><td>Walk-in</td><td class="num">$24.50</td><td class="num amt">0.1684</td><td><span class="badge paid">Paid</span></td><td class="mono">Front Counter</td><td class="mono">2m ago</td></tr>
+          <tr><td class="id">#1046</td><td>A. Rivera</td><td class="num">$8.00</td><td class="num amt">0.0550</td><td><span class="badge pending">Pending</span></td><td class="mono">Patio Till</td><td class="mono">6m ago</td></tr>
+          <tr><td class="id">#1045</td><td>Online</td><td class="num">$112.00</td><td class="num amt">0.7698</td><td><span class="badge paid">Paid</span></td><td class="mono">Web Store</td><td class="mono">21m ago</td></tr>
+          <tr><td class="id">#1044</td><td>Walk-in</td><td class="num">$5.25</td><td class="num">—</td><td><span class="badge await">Awaiting</span></td><td class="mono">Front Counter</td><td class="mono">28m ago</td></tr>
+          <tr><td class="id">#1043</td><td>M. Chen</td><td class="num">$46.00</td><td class="num amt">0.3162</td><td><span class="badge refunded">Refunded</span></td><td class="mono">Patio Till</td><td class="mono">1h ago</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="section" id="sec-orders">
+      <div class="section-title">Orders</div>
+      <div class="section-sub">Every payment across your devices, live as it confirms.</div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Paid Today</div><div class="stat-value teal">41</div><div class="stat-foot">87% confirmation rate</div></div>
+        <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value">3</div><div class="stat-foot">awaiting confirmations</div></div>
+        <div class="stat-card"><div class="stat-label">Avg. Order</div><div class="stat-value xmr">0.1876</div><div class="stat-foot">≈ $27.30</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3 class="card-title"><span class="dot"></span>All Orders</h3><button class="btn btn-fill">Export CSV</button></div>
+        <table class="data-table"><thead><tr><th>Order</th><th>Items</th><th>Customer</th><th class="num">Total</th><th class="num">XMR</th><th>Confirmations</th><th>Status</th></tr></thead><tbody>
+          <tr><td class="id">#1047</td><td>2× Latte, 1× Croissant</td><td>Walk-in</td><td class="num">$24.50</td><td class="num amt">0.1684</td><td class="mono">10 / 10</td><td><span class="badge paid">Paid</span></td></tr>
+          <tr><td class="id">#1046</td><td>1× Cold Brew</td><td>A. Rivera</td><td class="num">$8.00</td><td class="num amt">0.0550</td><td class="mono">0 / 10</td><td><span class="badge pending">Pending</span></td></tr>
+          <tr><td class="id">#1045</td><td>Catering box ×4</td><td>Online</td><td class="num">$112.00</td><td class="num amt">0.7698</td><td class="mono">10 / 10</td><td><span class="badge paid">Paid</span></td></tr>
+          <tr><td class="id">#1044</td><td>1× Espresso</td><td>Walk-in</td><td class="num">$5.25</td><td class="num">—</td><td class="mono">—</td><td><span class="badge await">Awaiting</span></td></tr>
+          <tr><td class="id">#1043</td><td>1× Sandwich, 2× Tea</td><td>M. Chen</td><td class="num">$46.00</td><td class="num amt">0.3162</td><td class="mono">refunded</td><td><span class="badge refunded">Refunded</span></td></tr>
+        </tbody></table>
+      </div>
+    </div>
+
+    <!-- POINT OF SALE -->
+    <div class="section" id="sec-pos">
+      <div class="section-title">Point of Sale</div>
+      <div class="section-sub">Tap items to build an order, then charge in XMR.</div>
+      <div class="pos-wrap">
+        <div class="card" style="margin:0">
+          <div class="card-header"><h3 class="card-title"><span class="dot"></span>Menu</h3><button class="btn btn-ghost">All Categories ▾</button></div>
+          <div class="prod-grid">
+            <div class="prod"><div class="emoji">☕</div><div class="pn">Espresso</div><div class="pp">$3.50</div><div class="px">0.0241 XMR</div></div>
+            <div class="prod"><div class="emoji">🥛</div><div class="pn">Latte</div><div class="pp">$5.00</div><div class="px">0.0344 XMR</div></div>
+            <div class="prod"><div class="emoji">🧊</div><div class="pn">Cold Brew</div><div class="pp">$8.00</div><div class="px">0.0550 XMR</div></div>
+            <div class="prod"><div class="emoji">🥐</div><div class="pn">Croissant</div><div class="pp">$4.00</div><div class="px">0.0275 XMR</div></div>
+            <div class="prod"><div class="emoji">🍵</div><div class="pn">Matcha</div><div class="pp">$6.00</div><div class="px">0.0413 XMR</div></div>
+            <div class="prod"><div class="emoji">🥪</div><div class="pn">Sandwich</div><div class="pp">$11.00</div><div class="px">0.0756 XMR</div></div>
+            <div class="prod"><div class="emoji">🍪</div><div class="pn">Cookie</div><div class="pp">$2.50</div><div class="px">0.0172 XMR</div></div>
+            <div class="prod"><div class="emoji">🧃</div><div class="pn">Juice</div><div class="pp">$4.50</div><div class="px">0.0309 XMR</div></div>
+          </div>
+        </div>
+        <div class="cart">
+          <h3>Current Order <span class="ct">#1048 · Front Counter</span></h3>
+          <div class="cart-item"><span class="qn"><b>2×</b> Latte</span><span class="ci-amt">$10.00</span></div>
+          <div class="cart-item"><span class="qn"><b>1×</b> Croissant</span><span class="ci-amt">$4.00</span></div>
+          <div class="cart-item"><span class="qn"><b>1×</b> Cold Brew</span><span class="ci-amt">$8.00</span></div>
+          <div class="cart-tot">
+            <div class="r"><span>Subtotal</span><span class="fiat">$22.00</span></div>
+            <div class="r"><span>Tax (8%)</span><span class="fiat">$1.76</span></div>
+            <div class="r big"><span>Total</span><span><span class="xmr">0.1634 XMR</span></span></div>
+            <div class="r"><span>&nbsp;</span><span class="fiat">≈ $23.76</span></div>
+          </div>
+          <button class="btn-charge">Charge · Show QR</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS / PRODUCTS / DEVICES (light placeholders) -->
+    <div class="section" id="sec-analytics">
+      <div class="section-title">Analytics</div>
+      <div class="section-sub">Revenue trends and top products.</div>
+      <div class="stats-grid">
+        <div class="stat-card feature"><div class="stat-label">30-Day Revenue</div><div class="stat-value xmr">241.7</div><div class="stat-foot">≈ $35,180</div></div>
+        <div class="stat-card"><div class="stat-label">Orders</div><div class="stat-value">1,283</div><div class="stat-foot"><span class="up">↑ 18%</span> MoM</div></div>
+        <div class="stat-card"><div class="stat-label">Avg Ticket</div><div class="stat-value">$27.42</div><div class="stat-foot">across 5 devices</div></div>
+        <div class="stat-card"><div class="stat-label">Top Product</div><div class="stat-value" style="font-size:18px">Latte</div><div class="stat-foot">312 sold</div></div>
+      </div>
+      <div class="card"><div class="card-header"><h3 class="card-title"><span class="dot"></span>Daily Revenue (XMR)</h3></div>
+        <svg viewBox="0 0 760 200" style="width:100%;height:200px">
+          <polyline fill="none" stroke="var(--accent)" stroke-width="2.5" points="0,150 60,130 120,140 180,95 240,110 300,70 360,90 420,55 480,75 540,40 600,60 660,30 720,48 760,25"/>
+          <polygon fill="var(--accent-glow)" opacity=".25" points="0,150 60,130 120,140 180,95 240,110 300,70 360,90 420,55 480,75 540,40 600,60 660,30 720,48 760,25 760,200 0,200"/>
+        </svg>
+      </div>
+    </div>
+    <div class="section" id="sec-products">
+      <div class="section-title">Products</div>
+      <div class="section-sub">Your menu, priced in fiat and auto-converted to XMR.</div>
+      <div class="card"><div class="card-header"><h3 class="card-title"><span class="dot"></span>Catalog</h3><button class="btn btn-fill">+ Add Product</button></div>
+        <table class="data-table"><thead><tr><th>Product</th><th>Category</th><th class="num">Price</th><th class="num">XMR</th><th>Status</th></tr></thead><tbody>
+          <tr><td>Espresso</td><td class="mono">Drinks</td><td class="num">$3.50</td><td class="num amt">0.0241</td><td><span class="badge paid">Active</span></td></tr>
+          <tr><td>Latte</td><td class="mono">Drinks</td><td class="num">$5.00</td><td class="num amt">0.0344</td><td><span class="badge paid">Active</span></td></tr>
+          <tr><td>Sandwich</td><td class="mono">Food</td><td class="num">$11.00</td><td class="num amt">0.0756</td><td><span class="badge paid">Active</span></td></tr>
+          <tr><td>Cookie</td><td class="mono">Food</td><td class="num">$2.50</td><td class="num amt">0.0172</td><td><span class="badge await">Hidden</span></td></tr>
+        </tbody></table>
+      </div>
+    </div>
+    <div class="section" id="sec-devices">
+      <div class="section-title">Devices</div>
+      <div class="section-sub">Paired PoS terminals. Pair a new one with a QR invite.</div>
+      <div class="card"><div class="card-header"><h3 class="card-title"><span class="dot"></span>Paired Devices</h3><button class="btn btn-fill">+ Pair Device</button></div>
+        <div class="dev-grid" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
+          <div class="dev-chip"><div class="top"><span class="d"></span><span class="dn">Front Counter</span></div><div class="ls">Online · 312 orders</div></div>
+          <div class="dev-chip"><div class="top"><span class="d"></span><span class="dn">Patio Till</span></div><div class="ls">Online · 204 orders</div></div>
+          <div class="dev-chip"><div class="top"><span class="d"></span><span class="dn">Web Store</span></div><div class="ls">Online · 561 orders</div></div>
+          <div class="dev-chip"><div class="top"><span class="d off"></span><span class="dn">Pop-up Stall</span></div><div class="ls">Offline · 206 orders</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS (with Appearance theme selector) -->
+    <div class="section" id="sec-settings">
+      <div class="section-title">Settings</div>
+      <div class="section-sub">Manage your business configuration and appearance.</div>
+
+      <div class="card">
+        <div class="card-header"><h3 class="card-title"><span class="dot"></span>Appearance</h3></div>
+        <p style="font-size:13px;color:var(--ink-dim);margin:-6px 0 16px">Choose a theme. Changes apply instantly and are remembered on this device.</p>
+        <div class="theme-grid">
+          <div class="theme-opt sel" data-theme-pick="glass"><div class="check">✓</div><div class="swatch sw-glass"><div class="bar"></div><div class="bar b2"></div><div class="chip"></div></div><div class="tn">Glass</div><div class="td">Frosted depth · orange + teal</div></div>
+          <div class="theme-opt" data-theme-pick="classic"><div class="check">✓</div><div class="swatch sw-classic"><div class="bar"></div><div class="bar b2"></div><div class="chip"></div></div><div class="tn">Classic</div><div class="td">The original SuperPay dark</div></div>
+          <div class="theme-opt" data-theme-pick="carbon"><div class="check">✓</div><div class="swatch sw-carbon"><div class="bar"></div><div class="bar b2"></div><div class="chip"></div></div><div class="tn">Carbon</div><div class="td">Neutral graphite · minimal</div></div>
+          <div class="theme-opt" data-theme-pick="ocean"><div class="check">✓</div><div class="swatch sw-ocean"><div class="bar"></div><div class="bar b2"></div><div class="chip"></div></div><div class="tn">Ocean</div><div class="td">Deep blue · cyan accent</div></div>
+          <div class="theme-opt" data-theme-pick="fintech"><div class="check">✓</div><div class="swatch sw-fintech"><div class="bar"></div><div class="bar b2"></div><div class="chip"></div></div><div class="tn">Fintech</div><div class="td">Soft light · clean &amp; bright</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3 class="card-title"><span class="dot"></span>Business Information</h3></div>
+        <div class="row-2">
+          <div class="field"><label>Business Name</label><input value="Downtown Cafe"></div>
+          <div class="field"><label>Fiat Currency</label><select><option>USD</option><option>EUR</option><option>GBP</option></select></div>
+        </div>
+        <div class="row-2">
+          <div class="field"><label>Tax Rate (%)</label><input value="8"></div>
+          <div class="field"><label>Confirmation Threshold</label><select><option>0 — Unconfirmed</option><option selected>1 — Standard</option><option>10 — High Security</option></select></div>
+        </div>
+        <div style="margin-top:4px">
+          <div class="toggle-row"><div><div class="tl">Show fiat prices</div><div class="ts">Display prices in your local currency</div></div><div class="sw-toggle on"></div></div>
+          <div class="toggle-row"><div><div class="tl">Show XMR prices</div><div class="ts">Display the Monero equivalent in PoS and Products</div></div><div class="sw-toggle on"></div></div>
+        </div>
+        <button class="btn btn-fill" style="margin-top:14px">Save Settings</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3 class="card-title"><span class="dot"></span>Monero Node</h3></div>
+        <div class="node-row" style="margin-bottom:16px"><div class="left"><span class="pulse"></span><div><div class="nm">Connected to Umbrel Monero Node</div><div class="sub">Auto-detected · credentials managed by Umbrel</div></div></div><div class="synced">Synced</div></div>
+        <div class="kv">
+          <div class="k">Node Address</div><div class="v">monero_monerod_1 : 18081</div>
+          <div class="k">Network</div><div class="v">mainnet</div>
+          <div class="k">Block Height</div><div class="v">3,694,995</div>
+          <div class="k">Wallet</div><div class="v">view-only · downtown.keys</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="demo">
+  <span class="lbl">Theme</span>
+  <button data-theme-pick="glass" class="on">Glass</button>
+  <button data-theme-pick="classic">Classic</button>
+  <button data-theme-pick="carbon">Carbon</button>
+  <button data-theme-pick="ocean">Ocean</button>
+  <button data-theme-pick="fintech">Fintech</button>
+</div>
+
+<script>
+  // ---- section navigation ----
+  const navItems=document.querySelectorAll('.nav-item'),sections=document.querySelectorAll('.section');
+  function show(view){
+    sections.forEach(s=>s.classList.toggle('active',s.id==='sec-'+view));
+    navItems.forEach(n=>n.classList.toggle('active',n.dataset.nav===view));
+    document.querySelector('.main').scrollTop=0;
+  }
+  navItems.forEach(n=>n.onclick=()=>show(n.dataset.nav));
+  document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>show(b.dataset.goto));
+
+  // ---- theme switching (settings cards + bottom demo bar stay in sync) ----
+  function setTheme(t){
+    document.documentElement.setAttribute('data-theme',t);
+    try{localStorage.setItem('superpay_theme',t)}catch(e){}
+    document.querySelectorAll('[data-theme-pick]').forEach(el=>{
+      const on=el.dataset.themePick===t;
+      el.classList.toggle('on',on);    // demo bar buttons
+      el.classList.toggle('sel',on);   // settings cards
+    });
+  }
+  document.querySelectorAll('[data-theme-pick]').forEach(el=>el.onclick=()=>setTheme(el.dataset.themePick));
+  // restore saved
+  try{const saved=localStorage.getItem('superpay_theme');if(saved)setTheme(saved);}catch(e){}
+</script>
+</body>
+</html>
